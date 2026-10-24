@@ -22,7 +22,7 @@ See [`deep-tagger-api/README.md`](deep-tagger-api/README.md) for setup and usage
 
 ## Image Puller
 
-A Python utility that downloads product images from tagged CSV files and records their local paths. It supports multiple product types (tops, dresses, pants) and organizes downloaded images by category.
+A Python utility that downloads product images from tagged CSV files and records their local paths. It supports multiple product types (tops, shoes, pants) and organizes downloaded images by category.
 
 See [`img-puller/README.md`](img-puller/README.md) for setup and usage details.
 
