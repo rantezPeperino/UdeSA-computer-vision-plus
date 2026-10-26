@@ -1,163 +1,151 @@
 #!/usr/bin/env python3
 """
-Generate synthetic Google Ads feed data from the first 500 rows of each product type CSV.
-Adds business fields (price, gtin, brand, availability, link) and inferable fields
-(title, description, gender, material, pattern, google_product_category, color).
+Genera el feed sintético de prueba a partir de las primeras 500 filas de cada CSV
+de img-puller. Agrega los campos que declara la marca (brand, price, gtin,
+availability, link, condition, gender, material, pattern, color, size, age_group)
+y los que arma el pipeline (google_product_category, title, description).
 
-Usage:
-    python generate_synthetic_data.py
+Todo lo agregado es sintético: se sortea con semilla fija y no mira la foto. Sirve
+para probar el contrato del feed, la validación y la publicación (M2 a M4), no para
+entrenar ni evaluar modelos.
+
+Uso (desde la raíz del repo):
+    python upgrade/generate_synthetic_data.py
 """
 
 import csv
 import random
 from pathlib import Path
 
-# Data source paths
-SOURCE_PANTS = Path("img-puller/data/pants_tags.csv")
-SOURCE_SHOES = Path("img-puller/data/shoes_tags.csv")
-SOURCE_TOPS = Path("img-puller/data/tops_tags.csv")
+SEED = 42
+MAX_ROWS = 500
+
+SOURCES = {
+    "pants": Path("img-puller/data/pants_tags.csv"),
+    "shoes": Path("img-puller/data/shoes_tags.csv"),
+    "tops": Path("img-puller/data/tops_tags.csv"),
+}
 OUTPUT_DIR = Path("upgrade/data")
 
-# Synthetic data pools (realistic but clearly synthetic for test/demo)
+# Pozos sintéticos. Las marcas son inventadas; los precios, en pesos argentinos.
 BRANDS = ["StyleCo", "FashionHub", "TrendWear", "ClassicStyle", "ModernFit", "ElegantLine"]
-MATERIALS = ["Cotton", "Polyester", "Cotton Blend", "Denim", "Linen", "Wool", "Silk"]
-PATTERNS = ["Solid", "Striped", "Checkered", "Floral", "Abstract", "Geometric"]
-COLORS = ["black", "navy blue", "white", "gray", "beige", "khaki", "blue", "red", "green"]
-SIZES = ["XS", "S", "M", "L", "XL", "XXL"]
-GENDERS = ["female", "male", "unisex"]
+PRICE_RANGE_ARS = (15000.00, 150000.00)
+GTIN_SHARE = 0.5          # la otra mitad no tiene GTIN, como una prenda de marca propia
+GS1_PREFIX_AR = "779"     # prefijo GS1 de Argentina
 
-# Google Merchant category mappings
+GENDERS = {"female": "mujer", "male": "hombre", "unisex": "unisex"}
+MATERIALS = {
+    "Cotton": "algodón", "Polyester": "poliéster", "Cotton Blend": "mezcla de algodón",
+    "Denim": "denim", "Linen": "lino", "Wool": "lana", "Silk": "seda",
+}
+PATTERNS = {
+    "Solid": "liso", "Striped": "rayado", "Checkered": "a cuadros",
+    "Floral": "floreado", "Abstract": "estampado abstracto", "Geometric": "estampado geométrico",
+}
+COLORS = {
+    "black": "negro", "navy blue": "azul marino", "white": "blanco", "gray": "gris",
+    "beige": "beige", "khaki": "caqui", "blue": "azul", "red": "rojo", "green": "verde",
+}
+SIZES = {
+    "pants": ["XS", "S", "M", "L", "XL", "XXL"],
+    "tops": ["XS", "S", "M", "L", "XL", "XXL"],
+    "shoes": [str(n) for n in range(35, 45)],
+}
+
+# Mismos caminos que positioner/enrichment/category_mapper.py
 CATEGORY_MAP = {
     "pants": "Apparel & Accessories > Clothing > Pants",
-    "shoes": "Apparel & Accessories > Footwear > Shoes",
+    "shoes": "Apparel & Accessories > Shoes",
     "tops": "Apparel & Accessories > Clothing > Tops",
 }
 
-# Product-specific title templates
-TITLE_TEMPLATES = {
-    "pants": "{brand} Women's {color} {material} {fit_type} Trousers",
-    "shoes": "{brand} {color} {material} {occasion} Shoes",
-    "tops": "{brand} Women's {color} {material} {fit_type} {neck_style} Top",
+PRODUCT_NAMES = {"pants": "Pantalón", "tops": "Top"}
+SHOE_NAMES = {
+    "Boots": "Botas", "Winter-Boots": "Botas de invierno", "Chelsea-Boots": "Botas Chelsea",
+    "Combat-Boots": "Borcegos", "Booties": "Botinetas", "Loafers": "Mocasines",
+    "Sandals": "Sandalias", "Slides": "Chinelas", "Flats": "Chatitas",
+    "Casual-Sneakers": "Zapatillas", "Pumps": "Zapatos de taco",
+}
+SEASONS = {
+    "Fall": "otoño", "Spring": "primavera", "Summer": "verano", "Winter": "invierno",
+    "Tropical-Vacation": "vacaciones en clima cálido",
+    "Cold_Weather-Vacation": "vacaciones en clima frío",
 }
 
-# Description templates (kept short, ~150 chars for CSV)
-DESC_TEMPLATES = {
-    "pants": "Comfortable {fit_type} {material} trousers perfect for {season} wear. Features {pocket_details}.",
-    "shoes": "Stylish {color} {occasion} shoes in {material}. Ideal for {season} outings.",
-    "tops": "Flattering {fit_type} top in {material} with {neck_style}. Perfect for {season}.",
-}
+
+def generate_gtin(rng: random.Random) -> str:
+    """GTIN-13 con prefijo argentino y dígito verificador GS1 correcto."""
+    body = GS1_PREFIX_AR + "".join(str(rng.randint(0, 9)) for _ in range(9))
+    total = sum(int(d) * (1 if i % 2 == 0 else 3) for i, d in enumerate(body))
+    return body + str((10 - total % 10) % 10)
 
 
-def generate_gtin(product_id: str) -> str:
-    """Generate a fake but valid GTIN-13 (just use the id padded)."""
-    return str(int(product_id) % 10000000000000).zfill(13)
+def product_name(row: dict, product_type: str) -> str:
+    if product_type == "shoes":
+        return SHOE_NAMES.get(row.get("style_silhouette", ""), "Calzado")
+    return PRODUCT_NAMES[product_type]
 
 
-def generate_link(product_id: str, category: str) -> str:
-    """Generate a fake product link."""
-    return f"https://store.example.com/{category}/{product_id}"
-
-
-def generate_price() -> str:
-    """Generate a realistic price in USD."""
-    price = round(random.uniform(19.99, 149.99), 2)
-    return f"{price} USD"
-
-
-def enrich_row(row: dict, product_type: str) -> dict:
-    """Add synthetic business and inferable fields to a product row."""
+def enrich_row(row: dict, product_type: str, rng: random.Random) -> dict:
+    """Agrega a la fila los campos sintéticos del feed."""
     product_id = row["id"]
-    
-    # Business fields (required from user in production, here synthetic)
-    row["brand"] = random.choice(BRANDS)
-    row["price"] = generate_price()
-    row["gtin"] = generate_gtin(product_id)
-    row["availability"] = random.choice(["in_stock", "in_stock"])  # mostly in stock for demo
-    row["link"] = generate_link(product_id, product_type)
+
+    # Campos que declara la marca
+    row["brand"] = rng.choice(BRANDS)
+    row["price"] = f"{rng.uniform(*PRICE_RANGE_ARS):.2f} ARS"
+    row["gtin"] = generate_gtin(rng) if rng.random() < GTIN_SHARE else ""
+    row["availability"] = "in_stock"
+    row["link"] = f"https://store.example.com/{product_type}/{product_id}"
     row["condition"] = "new"
-    
-    # Inferable fields (generated by model pipeline)
-    row["gender"] = random.choice(GENDERS)
-    row["material"] = random.choice(MATERIALS)
-    row["pattern"] = random.choice(PATTERNS)
-    row["color"] = random.choice(COLORS)
-    row["size"] = random.choice(SIZES)
+    row["gender"] = rng.choice(list(GENDERS))
+    row["material"] = rng.choice(list(MATERIALS))
+    row["pattern"] = rng.choice(list(PATTERNS))
+    row["color"] = rng.choice(list(COLORS))
+    row["size"] = rng.choice(SIZES[product_type])
     row["age_group"] = "adult"
+
+    # Campos que arma el pipeline
     row["google_product_category"] = CATEGORY_MAP[product_type]
-    
-    # Build structured title
-    fit_or_occasion = row.get("fit_silhouette", "Regular")
-    if "Occasion" in row.get("wearing_occasion", ""):
-        occasion = row["wearing_occasion"]
-        title = f"{row['brand']} {row['color'].title()} {row['material']} {occasion} Shoes"
-    else:
-        pocket_desc = row.get("pocket_details", "pocket")
-        neck_style = row.get("neck_style", "crew")
-        title_tmpl = TITLE_TEMPLATES.get(product_type, "{brand} {color} {material} Item")
-        title = title_tmpl.format(
-            brand=row["brand"],
-            color=row["color"].title(),
-            material=row["material"],
-            fit_type=fit_or_occasion.replace("-", " "),
-            neck_style=neck_style.replace("-", " ").lower(),
-            occasion=row.get("wearing_occasion", "casual").replace("-", " ").lower(),
-            pocket_details=pocket_desc.lower(),
-            season=row.get("season", "all-season").lower(),
-        )
-    row["title"] = title[:150]  # Truncate to reasonable length
-    
-    # Build description
-    desc_tmpl = DESC_TEMPLATES.get(product_type, "High quality {material} product.")
-    desc = desc_tmpl.format(
-        fit_type=fit_or_occasion.replace("-", " ").lower(),
-        material=row["material"],
-        season=row.get("season", "all").replace("-", " ").lower(),
-        pocket_details=row.get("pocket_details", "practical pockets").lower(),
-        color=row["color"],
-        occasion=row.get("wearing_occasion", "casual").replace("-", " ").lower(),
-        neck_style=row.get("neck_style", "crew neck").replace("-", " ").lower(),
-    )
-    row["description"] = desc[:200]
-    
+
+    name = product_name(row, product_type)
+    gender = GENDERS[row["gender"]]
+    material = MATERIALS[row["material"]]
+    color = COLORS[row["color"]]
+    row["title"] = (
+        f"{row['brand']} {name} {gender} de {material} {color} talle {row['size']}"
+    )[:150]
+
+    description = f"{name} de {material} en color {color}, {PATTERNS[row['pattern']]}."
+    season = SEASONS.get(row.get("season", ""))
+    if season:
+        description += f" Pensado para {season}."
+    row["description"] = description
+
     return row
 
 
-def process_csv(source_path: Path, product_type: str, output_path: Path, max_rows: int = 500):
-    """Read first max_rows from source, enrich, and write to output."""
-    print(f"Processing {product_type} from {source_path}...")
-    
-    rows = []
-    with open(source_path, "r", encoding="utf-8") as f:
+def process_csv(source: Path, product_type: str, output: Path, rng: random.Random) -> None:
+    print(f"Procesando {product_type} desde {source}...")
+    with open(source, "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
-        for i, row in enumerate(reader):
-            if i >= max_rows:
-                break
-            rows.append(enrich_row(row, product_type))
-    
-    # Write output
+        rows = [enrich_row(row, product_type, rng) for _, row in zip(range(MAX_ROWS), reader)]
+
     if not rows:
-        print(f"  ERROR: No rows read from {source_path}")
+        print(f"  ERROR: no se leyeron filas de {source}")
         return
-    
-    fieldnames = list(rows[0].keys())
-    with open(output_path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
+
+    with open(output, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
         writer.writeheader()
         writer.writerows(rows)
-    
-    print(f"  ✓ Wrote {len(rows)} rows to {output_path}")
+    print(f"  {len(rows)} filas en {output}")
 
 
-def main():
+def main() -> None:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    
-    # Process each product type
-    process_csv(SOURCE_PANTS, "pants", OUTPUT_DIR / "pants_google_500.csv")
-    process_csv(SOURCE_SHOES, "shoes", OUTPUT_DIR / "shoes_google_500.csv")
-    process_csv(SOURCE_TOPS, "tops", OUTPUT_DIR / "tops_google_500.csv")
-    
-    print("\nDone! Synthetic Google Ads feed data generated.")
-    print(f"Output files in: {OUTPUT_DIR}/")
+    rng = random.Random(SEED)
+    for product_type, source in SOURCES.items():
+        process_csv(source, product_type, OUTPUT_DIR / f"{product_type}_google_500.csv", rng)
 
 
 if __name__ == "__main__":

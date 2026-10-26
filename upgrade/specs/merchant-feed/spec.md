@@ -10,7 +10,7 @@ The system SHALL define and enforce a CSV contract that separates business field
 (required from the user) from inferable fields (produced by Milestone 1).
 
 #### Scenario: Business fields present
-- **WHEN** the user CSV includes `price`, `gtin`, `availability`, `link`, `brand`
+- **WHEN** the user CSV includes `price`, `availability`, `link`, `brand`, `condition`
 - **THEN** the system SHALL accept the row for mapping
 - **TEST** `test_csv_contract_accepts_complete_row`
 
@@ -18,6 +18,11 @@ The system SHALL define and enforce a CSV contract that separates business field
 - **IF** a required business field (e.g. `price`) is absent
 - **THEN** the row SHALL be rejected with a clear error naming the missing field
 - **TEST** `test_csv_contract_rejects_missing_price`
+
+#### Scenario: Product without GTIN accepted
+- **IF** the row has no `gtin` (an own-brand garment usually has none)
+- **THEN** the system SHALL accept the row, and the mapped row SHALL pass validation
+- **TEST** `test_csv_contract_accepts_row_without_gtin`
 
 ### Requirement: Google Merchant schema mapping
 The system SHALL map a merged product record to the Google Merchant product schema.
@@ -48,6 +53,12 @@ rules before the feed is considered publishable.
 - **THEN** the row SHALL be marked `invalid` with reason `price_format`
 - **TEST** `test_validation_invalid_price_format`
 
+#### Scenario: Missing apparel field fails validation
+- **IF** a required field (`id`, `title`, `description`, `link`, `image_link`,
+  `price`, `availability`, `brand`, `color`, `size`, `gender`, `age_group`) is empty
+- **THEN** the row SHALL be marked `invalid` with reason `missing_<field>`
+- **TEST** `test_validation_missing_apparel_field`
+
 ### Requirement: Validation report
 The system SHALL emit a summary report of valid vs invalid rows after validation.
 
@@ -61,8 +72,10 @@ The system SHALL emit a summary report of valid vs invalid rows after validation
 
 - `test_csv_contract_accepts_complete_row`
 - `test_csv_contract_rejects_missing_price`
+- `test_csv_contract_accepts_row_without_gtin`
 - `test_schema_mapping_full_apparel_record`
 - `test_validation_valid_row_passes`
 - `test_validation_invalid_gtin`
 - `test_validation_invalid_price_format`
+- `test_validation_missing_apparel_field`
 - `test_validation_report_counts_consistent`

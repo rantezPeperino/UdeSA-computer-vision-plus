@@ -59,14 +59,16 @@ class EnrichmentTests(unittest.TestCase):
     #  test_enrich_single_row_returns_inferable_fields                    #
     # ------------------------------------------------------------------ #
     def test_enrich_single_row_returns_inferable_fields(self) -> None:
-        """Happy-path: all image-based models succeed and populate every field."""
-        # Arrange
+        """Happy-path: image models fill the predicted fields, declared ones pass through."""
+        # Arrange — the multilabel mock returns the groups the real pants
+        # checkpoint has (see pants.labels.json); it never returns gender,
+        # material or pattern.
         _fg.download_image.return_value = MagicMock()          # fake img_array
         _fg.product_type_classifier.predict.return_value = "Pants"
         _fg.multilabel_classifier.predict.return_value = {
-            "gender": "female",
-            "material": "Denim",
-            "pattern": "Solid",
+            "pocket_details": "Slant-Pocket",
+            "fit_silhouette": "Slim-Fit-Pant",
+            "season": "Fall",
         }
         _fg.k_means.predict_k_colors.return_value = ({"black"}, [[0, 0, 0]])
         _fg.blip_transformer.predict_product_title.return_value = "pants"
@@ -76,17 +78,22 @@ class EnrichmentTests(unittest.TestCase):
             "image_url": "http://example.com/img.jpg",
             "brand": "StyleCo",
             "size": "M",
+            "gender": "female",
+            "material": "Denim",
+            "pattern": "Solid",
         }
 
         # Act
         result = _fg.enrich_product(row)
 
-        # Assert — all inferable fields are populated
+        # Assert — declared fields pass through, predicted fields are filled
         self.assertEqual(result.gender, "female")
         self.assertEqual(result.material, "Denim")
         self.assertEqual(result.pattern, "Solid")
+        self.assertEqual(result.color, "black")
+        self.assertEqual(result.predicted_color, "black")
         self.assertIsNotNone(result.google_product_category)
-        self.assertIsNotNone(result.title)
+        self.assertIn("Slim-Fit-Pant", result.title)
         self.assertEqual(result.description, "Great pants.")
         self.assertEqual(result.status, "ok")
 
@@ -110,8 +117,10 @@ class EnrichmentTests(unittest.TestCase):
 
         # Assert
         self.assertEqual(result.status, "partial")
-        # gender falls back to the value in the row
+        # gender is the value declared in the row
         self.assertEqual(result.gender, "male")
+        # no image, so there is no predicted color
+        self.assertIsNone(result.predicted_color)
         # category not mapped (product_type was never determined)
         self.assertIsNone(result.google_product_category)
 

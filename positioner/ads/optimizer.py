@@ -70,6 +70,6 @@ def run_optimization(
     if not config.dry_run:
         # In live mode, apply via campaign_manager (stubs in tests will raise).
         for action in actions:
-            campaign_manager.pause_product(action.product_id)  # type: ignore[attr-defined]
+            campaign_manager.pause_product(action.product_id)
 
     return actions

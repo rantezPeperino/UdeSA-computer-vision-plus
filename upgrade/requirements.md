@@ -1,54 +1,51 @@
-# Requirements: Free (Sandbox/Test) vs Paid (Production)
+# Requisitos: cuentas de prueba (gratis) y producción (pago)
 
-To run this project against Google, you need accounts, credentials and product data.
-Google offers **test/sandbox environments** that let you validate the full integration
-for free. Paid/production is only required to serve real ads and measure real
-performance.
+Para correr el pipeline contra Google hacen falta cuentas, credenciales y datos de producto. Google ofrece cuentas de prueba que permiten validar la integración completa sin costo. La producción con pago solo hace falta para mostrar anuncios reales y medir su rendimiento.
 
-## Requirements table
+## Tabla de requisitos
 
-| Requirement | FREE (test / sandbox) | PAID (production) |
+| Requisito | Gratis (cuenta de prueba) | Pago (producción) |
 |---|---|---|
-| Google Merchant Center account | Test/sandbox account, isolated from real data; does not show products to users | Real verified account (domain + business data) |
-| Google Ads account | Test account — appears as "cancelled" in the UI, **does not render ads** nor charge | Active account with **billing / card** configured |
-| Google Ads API access | Test Account Access: 15,000 operations limit; signed up directly in Google Cloud Console (no classic developer token since Sept 2026) | Basic (15,000 ops) or Standard (unlimited), via request |
-| Credentials / Auth | Service account recommended (avoids manual OAuth tokens) | OAuth2 or service account + Customer ID + Merchant ID |
-| Google Cloud project | Required (free) to enable the APIs | Required |
-| Product data (feed) | Fictitious data OK (invented prices, GTINs). Nothing is published | **Real data mandatory**: valid GTIN, real price, active link, stock |
-| Ads visible to public | No — not served; you only validate the code runs | Yes — served and competing in auctions |
-| Click / impression cost | $0 — no real auction | Real CPC / conversion spend |
-| What you can validate | Code uploads feed, creates campaigns, reads statuses and (simulated) metrics | Real positioning, real metrics (CTR, ROAS, conversions) |
+| Cuenta de Google Merchant Center | Cuenta de prueba, aislada de los datos reales; no muestra productos a nadie | Cuenta real verificada (dominio y datos del negocio) |
+| Cuenta de Google Ads | Cuenta de prueba: **no muestra anuncios** ni cobra | Cuenta activa con **facturación** configurada |
+| Acceso a la Google Ads API | Nivel Test: 15.000 operaciones por día, solo sobre cuentas de prueba. Se gestiona desde Google Cloud Console; los developer tokens se dieron de baja el 2026-09-09 | Niveles Explorer, Basic (15.000 operaciones por día) o Standard (sin límite) |
+| Credenciales | Cuenta de servicio (evita los tokens OAuth manuales) | OAuth2 o cuenta de servicio, más Customer ID y Merchant ID |
+| Proyecto de Google Cloud | Necesario (gratis) para habilitar las APIs | Necesario |
+| Datos de producto | Sirven datos inventados (precios, GTIN). No se publica nada | **Datos reales obligatorios**: GTIN válido si el producto lo tiene, precio real, link activo, stock |
+| Anuncios visibles | No: solo se valida que el código corre | Sí: se muestran y compiten en subastas |
+| Costo por clic o impresión | $0, no hay subasta real | Costo real por clic o por conversión |
+| Qué se puede validar | Que el código sube el feed, crea campañas y lee estados y métricas (en cero) | Posicionamiento real y métricas reales (CTR, ROAS, conversiones) |
 
-## Key notes
+## Notas
 
-- **Full free development**: Merchant Center test account + Google Ads test account +
-  a Google Cloud project is enough to validate the entire flow
-  (enrich CSV → upload feed → create campaign → read status) with zero spend and no
-  public ads.
-- **Free-mode limitation**: test accounts **do not render real ads nor return real
-  performance metrics**. They validate that the integration works, not real
-  positioning. The optimization loop (Milestone 4) can only be fully tested in
-  production with billing.
-- **Sept 2026 change**: the classic Google Ads developer token is no longer required;
-  access is managed from Google Cloud Console. Simplifies onboarding.
-- **Deprecation warning**: the old *Content API for Shopping* is being discontinued
-  (Aug 2026). Target the new **Merchant API**, which has its own sandbox test accounts.
+- **Desarrollo gratis completo:** una cuenta de prueba de Merchant Center, una de Google Ads y un proyecto de Google Cloud alcanzan para validar el flujo de punta a punta (feed → publicación → campaña → estado) sin gasto y sin anuncios públicos.
+- **Límite del modo gratis:** las cuentas de prueba no muestran anuncios ni devuelven métricas reales. Validan que la integración funciona, no el posicionamiento. La regla de la etapa 4 solo se puede probar de verdad en producción, con gasto.
+- **Merchant API:** la Content API for Shopping se dio de baja el 2026-08-18. El pipeline apunta a la Merchant API, que tiene sus propias cuentas de prueba.
+- **Estado del código:** las llamadas reales a las dos APIs todavía no están implementadas. Hoy los tests corren con las APIs simuladas ([`README.md`](README.md), sección Estado).
 
-## Recommended free setup order
+## Orden recomendado para armar el entorno gratis
 
-1. Create a project in Google Cloud Console.
-2. Enable **Merchant API** and **Google Ads API**.
-3. Create a **test account** in Merchant Center.
-4. Create a **test account** in Google Ads.
-5. Configure a **service account** and download its JSON key.
-6. Store credentials outside the repo (env vars / secret manager) — never commit keys.
+1. Crear un proyecto en Google Cloud Console.
+2. Habilitar **Merchant API** y **Google Ads API**.
+3. Crear una **cuenta de prueba** en Merchant Center.
+4. Crear una **cuenta de prueba** en Google Ads.
+5. Configurar una **cuenta de servicio** y bajar su clave JSON.
+6. Guardar las credenciales fuera del repo (variables de entorno o un gestor de secretos) y nunca commitear claves.
 
-## Sources
+Variables de entorno que lee `positioner/publishing/` (`credential_loader.py` las dos primeras, `environment.py` la tercera):
 
-- [Google Ads API — test accounts](https://developers.google.com/google-ads/api/docs/best-practices/test-accounts)
-- [Google Ads API — access levels](https://developers.google.com/google-ads/api/docs/api-policy/access-levels)
-- [Merchant API — test accounts](https://developers.google.com/merchant/api/guides/accounts/test-accounts)
-- [New onboarding without developer token](https://ads-developers.googleblog.com/2026/09/new-onboarding-experience-for-google-ads-api.html)
+```bash
+GOOGLE_SERVICE_ACCOUNT_PATH=/ruta/a/la/clave.json
+MERCHANT_ID=123456789
+MERCHANT_ENV=test          # o "production"
+```
 
-> Content was rephrased for compliance with licensing restrictions. Verify current
-> pricing and policies against the official Google documentation before production use.
+## Fuentes (consultadas el 2026-10-26)
+
+- [Google Ads API: cuentas de prueba](https://developers.google.com/google-ads/api/docs/best-practices/test-accounts)
+- [Google Ads API: niveles de acceso](https://developers.google.com/google-ads/api/docs/api-policy/access-levels)
+- [Merchant API: cuentas de prueba](https://developers.google.com/merchant/api/guides/accounts/test-accounts)
+- [Content API for Shopping: baja](https://developers.google.com/shopping-content/guides/sunset)
+- [Nueva experiencia de alta en la Google Ads API (2026-09-10)](https://ads-developers.googleblog.com/2026/09/new-onboarding-experience-for-google-ads-api.html)
+
+Precios y políticas pueden cambiar: antes de pasar a producción hay que contrastarlos con la documentación oficial de Google.

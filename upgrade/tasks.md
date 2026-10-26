@@ -1,47 +1,47 @@
-# Implementation Tasks
+# Tareas por etapa
 
-Tasks grouped by milestone. Each milestone ends with its test suite green before
-moving on.
+Cada etapa se cierra con todos sus escenarios en verde (`python scripts/spec_report.py upgrade/specs/<etapa>/spec.md`) antes de pasar a la siguiente.
 
-## Milestone 1 — Product Enrichment
+## Etapa 1 · Enriquecimiento
 
-- [ ] 1.1 Define the enriched-product data model (inferable fields)
-- [ ] 1.2 Reuse CV pipeline (TinyVGG, ResNet, K-Means, BLIP) to produce fields
-- [ ] 1.3 Add gender / material / pattern inference (image + tags + LLM)
-- [ ] 1.4 Implement structured title builder (`Brand+Gender+Product+Attr+Color+Size`)
-- [ ] 1.5 Implement `product_type` → `google_product_category` mapping table
-- [ ] 1.6 Handle missing-image → `partial`, unknown-type → `needs_category_review`
-- [ ] 1.7 Write tests (see `specs/product-enrichment/spec.md` → Tests)
+- [x] 1.1 Definir el modelo del producto enriquecido (`EnrichedProduct`)
+- [x] 1.2 Reutilizar el prototipo (TinyVGG, ResNet, K-Means, BLIP, Claude) para producir los campos inferidos
+- [x] 1.3 Pasar tal cual los campos que declara la marca (género, material, estampa) y guardar el color declarado y el predicho
+- [x] 1.4 Armar el título con orden fijo (`marca + género + prenda + atributo + color + talle`)
+- [x] 1.5 Mapear el tipo de prenda a `google_product_category`
+- [x] 1.6 Marcar como `partial` la fila sin imagen y como `needs_category_review` el tipo sin mapeo
+- [x] 1.7 Tests (ver `specs/product-enrichment/spec.md`)
 
-## Milestone 2 — Merchant Feed
+## Etapa 2 · Feed
 
-- [ ] 2.1 Define input CSV contract (business vs inferable columns)
-- [ ] 2.2 Implement merge of enriched + business fields
-- [ ] 2.3 Implement Google Merchant schema mapper
-- [ ] 2.4 Implement validators (required fields, GTIN checksum, price format)
-- [ ] 2.5 Implement validation report (valid/invalid counts + reasons)
-- [ ] 2.6 Write tests (see `specs/merchant-feed/spec.md` → Tests)
+- [x] 2.1 Definir el contrato del CSV de entrada (campos de la marca y campos inferidos)
+- [x] 2.2 Unir lo enriquecido con los campos de la marca
+- [x] 2.3 Mapear al esquema de Merchant Center
+- [x] 2.4 Validar campos obligatorios de indumentaria, formato de precio y GTIN cuando lo hay
+- [x] 2.5 Reporte de validación (filas válidas e inválidas con sus motivos)
+- [x] 2.6 Tests (ver `specs/merchant-feed/spec.md`)
 
-## Milestone 3 — Merchant Publishing
+## Etapa 3 · Publicación
 
-- [ ] 3.1 Implement secure credential loader (env / service account)
-- [ ] 3.2 Add environment selector (test default / production)
-- [ ] 3.3 Integrate Merchant API client (upload valid rows only)
-- [ ] 3.4 Handle partial upload failures with per-product results
-- [ ] 3.5 Implement product status readback
-- [ ] 3.6 Write tests with API client mocked (see `specs/merchant-publishing/spec.md`)
+- [x] 3.1 Cargar credenciales desde variables de entorno
+- [x] 3.2 Elegir ambiente (prueba por defecto, producción a pedido)
+- [x] 3.3 Subir solo las filas válidas
+- [x] 3.4 Seguir ante fallas parciales y devolver el resultado de cada producto
+- [x] 3.5 Leer el estado de aprobación de cada producto
+- [x] 3.6 Tests con el cliente simulado (ver `specs/merchant-publishing/spec.md`)
+- [ ] 3.7 Llamadas reales a la Merchant API (`_upload_product`, `_get_status`)
 
-## Milestone 4 — Ads Optimization
+## Etapa 4 · Campañas
 
-- [ ] 4.1 Integrate Google Ads API client + auth
-- [ ] 4.2 Implement campaign create/update (Shopping / Performance Max)
-- [ ] 4.3 Implement metrics retrieval (impressions, clicks, CTR, conv, cost)
-- [ ] 4.4 Implement rule-based optimization (pause/down-bid, flag low-CTR titles)
-- [ ] 4.5 Implement dry-run mode
-- [ ] 4.6 Write tests with API client mocked (see `specs/ads-optimization/spec.md`)
+- [x] 4.1 Crear o actualizar una campaña de Shopping
+- [x] 4.2 Traer métricas por producto (impresiones, clics, CTR, conversiones, costo)
+- [x] 4.3 Regla de optimización: CTR bajo con impresiones suficientes → proponer pausa y reescritura del título
+- [x] 4.4 Modo simulación por defecto
+- [x] 4.5 Tests con el cliente simulado (ver `specs/ads-optimization/spec.md`)
+- [ ] 4.6 Llamadas reales a la Google Ads API (`_find_campaign`, `_create_campaign`, `_update_campaign`, `pause_product`, `_fetch_metrics`)
 
-## Cross-cutting
+## Transversales
 
-- [ ] X.1 Document free vs paid setup (`requirements.md`) and link from project README
-- [ ] X.2 Add integration smoke test against test/sandbox accounts (opt-in, skipped in CI)
-- [ ] X.3 Ensure no credentials are committed (gitignore + secret scanning)
+- [x] X.1 Documentar el entorno gratis y el pago (`requirements.md`) y enlazarlo desde el README del repo
+- [x] X.2 No commitear credenciales (`.gitignore`; las credenciales se leen solo de variables de entorno)
+- [ ] X.3 Prueba de integración contra las cuentas de prueba de Google, opcional y salteada en CI
