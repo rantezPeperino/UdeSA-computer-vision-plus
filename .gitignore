@@ -17,3 +17,8 @@ positioner/enrichment/__pycache__/
 positioner/feed/__pycache__/
 positioner/publishing/__pycache__/
 positioner/tests/__pycache__/
+
+# Hito 2 (traído de UdeSA-toi)
+data/images/
+.venv/
+.ipynb_checkpoints/
