@@ -63,6 +63,7 @@ Foto + datos de la marca
 ```
 canvas.md               # AI Opportunity Canvas del proyecto
 hito-2/                 # Entregables del Hito 2: mapa de fuentes, EDA, datasheet y veredicto
+definicion-de-la-poc.md # Hito 3: definición de la PoC (alcance, spec, diseño y plan)
 data/                   # Muestra del Hito 2, planilla de re-etiquetado y caché del chequeo de URLs
 notebooks/              # Notebook del EDA de viabilidad
 scripts/                # Regeneración de la muestra, reporte de specs y entrenamiento nocturno
