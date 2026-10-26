@@ -94,3 +94,13 @@ class CampaignManager:
             NotImplementedError: always — real implementation requires network.
         """
         raise NotImplementedError("Real Google Ads API call not implemented")
+
+    def pause_product(self, product_id: str) -> None:
+        """Pause a single product in the managed campaign.
+
+        Called by run_optimization() when dry_run=False.
+
+        Raises:
+            NotImplementedError: always — real implementation requires network.
+        """
+        raise NotImplementedError("Real Google Ads API call not implemented")

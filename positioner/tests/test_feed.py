@@ -32,11 +32,11 @@ from positioner.feed.report import ValidationReport, build_report  # noqa: E402
 # ── 3. Helper fixtures ────────────────────────────────────────────────────────
 
 def _complete_business() -> dict:
-    """A business dict that satisfies all 6 required fields."""
+    """A business dict with the 5 required fields plus an optional valid GTIN."""
     return {
-        'price': '25.32 USD',
+        'price': '45999.00 ARS',
         'gtin': '4006381333931',   # valid GTIN-13
-        'availability': 'in stock',
+        'availability': 'in_stock',
         'link': 'https://example.com/pants/1',
         'brand': 'StyleCo',
         'condition': 'new',
@@ -87,6 +87,20 @@ class FeedTests(unittest.TestCase):
         self.assertIn('price', str(ctx.exception))
 
     # ------------------------------------------------------------------ #
+    #  test_csv_contract_accepts_row_without_gtin                         #
+    # ------------------------------------------------------------------ #
+    def test_csv_contract_accepts_row_without_gtin(self) -> None:
+        """A product without GTIN (own-brand garment) is accepted and still validates."""
+        business = _complete_business()
+        del business['gtin']
+        try:
+            validate_business_fields(business)
+        except ValueError as exc:
+            self.fail(f"validate_business_fields raised unexpectedly: {exc}")
+        product = map_to_merchant(_complete_enriched(), business, 'r0')
+        self.assertTrue(validate_row(product).valid)
+
+    # ------------------------------------------------------------------ #
     #  test_schema_mapping_full_apparel_record                            #
     # ------------------------------------------------------------------ #
     def test_schema_mapping_full_apparel_record(self) -> None:
@@ -133,11 +147,23 @@ class FeedTests(unittest.TestCase):
     def test_validation_invalid_price_format(self) -> None:
         """A row whose price does not match '<number> <CURRENCY>' is marked invalid."""
         business = _complete_business()
-        business['price'] = '$25.32'   # dollar sign — not accepted
+        business['price'] = '$45999'   # currency symbol — not accepted
         product = map_to_merchant(_complete_enriched(), business, 'r3')
         result = validate_row(product)
         self.assertFalse(result.valid)
         self.assertIn('price_format', result.reasons)
+
+    # ------------------------------------------------------------------ #
+    #  test_validation_missing_apparel_field                              #
+    # ------------------------------------------------------------------ #
+    def test_validation_missing_apparel_field(self) -> None:
+        """A row without size is marked invalid with 'missing_size'."""
+        business = _complete_business()
+        del business['size']
+        product = map_to_merchant(_complete_enriched(), business, 'r4')
+        result = validate_row(product)
+        self.assertFalse(result.valid)
+        self.assertIn('missing_size', result.reasons)
 
     # ------------------------------------------------------------------ #
     #  test_validation_report_counts_consistent                           #

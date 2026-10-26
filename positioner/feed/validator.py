@@ -9,6 +9,15 @@ from positioner.feed.schema_mapper import MerchantProduct
 
 _PRICE_RE = re.compile(r'^\d+(\.\d+)?\s+[A-Z]{3}$')
 
+# Fields every apparel row must carry. id, title, description, link,
+# image_link, price, availability and brand are required for every new
+# product; color, size, gender and age_group are required for apparel in
+# free listings and for garments sold in several colors or sizes.
+REQUIRED_FIELDS: List[str] = [
+    'id', 'title', 'description', 'link', 'image_link', 'price',
+    'availability', 'brand', 'color', 'size', 'gender', 'age_group',
+]
+
 
 @dataclass
 class ValidationResult:
@@ -52,6 +61,7 @@ def validate_row(product: MerchantProduct) -> ValidationResult:
     """Validate a MerchantProduct and return a ValidationResult.
 
     Checks:
+      - Every field in REQUIRED_FIELDS is present and non-empty.
       - GTIN-13 checksum/format when gtin is present and non-empty.
       - Price format when price is present and non-empty.
 
@@ -60,9 +70,13 @@ def validate_row(product: MerchantProduct) -> ValidationResult:
 
     Returns:
         ValidationResult with valid=True if no issues found, else valid=False
-        and reasons list containing one or more of: 'gtin_format', 'price_format'.
+        and reasons list containing one or more of: 'missing_<field>',
+        'gtin_format', 'price_format'.
     """
-    reasons: List[str] = []
+    reasons: List[str] = [
+        f'missing_{name}' for name in REQUIRED_FIELDS
+        if not getattr(product, name)
+    ]
 
     if product.gtin:
         if not validate_gtin(product.gtin):

@@ -6,7 +6,7 @@
 
 **Equipo:** Jorge Federico Flores, Nicolás Velázquez, Nilayvi Barrientos, Rubén Ortigoza
 
-**Muestra** (ruta en el repo): [`data/muestra/`](../data/muestra/) en [MatLock/UdeSA-toi](https://github.com/MatLock/UdeSA-toi). Son los CSV de `img-puller` del prototipo [MatLock/UdeSA-computer-vision](https://github.com/MatLock/UdeSA-computer-vision)
+**Muestra** (ruta en el repo): [`data/muestra/`](../data/muestra/) en [rantezPeperino/UdeSA-computer-vision-plus](https://github.com/rantezPeperino/UdeSA-computer-vision-plus). Son los CSV de `img-puller` del prototipo [MatLock/UdeSA-computer-vision](https://github.com/MatLock/UdeSA-computer-vision)
 
 **Notebook** (ruta en el repo): [`notebooks/eda_viabilidad.ipynb`](../notebooks/eda_viabilidad.ipynb)
 
