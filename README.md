@@ -216,6 +216,17 @@ python -m unittest positioner.tests.test_ads -v          # M4 — 7 tests
 python -m unittest discover -s positioner/tests -v
 ```
 
+To see the results against the specs, Cucumber-style (each `Scenario:` checked off):
+
+```bash
+python scripts/spec_report.py                                       # all milestones
+python scripts/spec_report.py upgrade/specs/merchant-feed/spec.md   # one milestone
+python scripts/spec_report.py --sin-pasos                           # hide WHEN/THEN steps
+python scripts/spec_report.py --estricto                            # also fail on scenarios without a test
+```
+
+It exits with code 1 when a scenario fails, so it can run in CI.
+
 ---
 
 ## Testing against Google (sandbox — free)

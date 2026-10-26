@@ -157,4 +157,5 @@ python3 upgrade/generate_synthetic_data.py
   is enforced at Milestone 2 (Feed validation).
 - **Can I skip milestones?** No — each builds on the previous. Milestone 2 needs Milestone 1 output;
   Milestone 3 needs Milestone 2 output; etc.
-- **How do I know when a milestone is done?** All tests in its `spec.md` → Tests section pass.
+- **How do I know when a milestone is done?** All tests in its `spec.md` → Tests section pass
+  (`python scripts/spec_report.py upgrade/specs/<milestone>/spec.md` shows every scenario checked).

@@ -12,10 +12,12 @@ The system SHALL define and enforce a CSV contract that separates business field
 #### Scenario: Business fields present
 - **WHEN** the user CSV includes `price`, `gtin`, `availability`, `link`, `brand`
 - **THEN** the system SHALL accept the row for mapping
+- **TEST** `test_csv_contract_accepts_complete_row`
 
 #### Scenario: Missing business field rejected
 - **IF** a required business field (e.g. `price`) is absent
 - **THEN** the row SHALL be rejected with a clear error naming the missing field
+- **TEST** `test_csv_contract_rejects_missing_price`
 
 ### Requirement: Google Merchant schema mapping
 The system SHALL map a merged product record to the Google Merchant product schema.
@@ -25,6 +27,7 @@ The system SHALL map a merged product record to the Google Merchant product sche
 - **THEN** the output SHALL contain `id`, `title`, `description`, `link`,
   `image_link`, `price`, `availability`, `brand`, `condition`,
   `google_product_category`, `gender`, `age_group`, `size`, `color`, `material`
+- **TEST** `test_schema_mapping_full_apparel_record`
 
 ### Requirement: Feed validation
 The system SHALL validate each mapped row against Google's required-field and format
@@ -33,14 +36,17 @@ rules before the feed is considered publishable.
 #### Scenario: Valid row passes validation
 - **WHEN** a mapped row satisfies all required fields and formats
 - **THEN** the row SHALL be marked `valid`
+- **TEST** `test_validation_valid_row_passes`
 
 #### Scenario: Invalid GTIN fails validation
 - **IF** `gtin` fails checksum/format validation
 - **THEN** the row SHALL be marked `invalid` with reason `gtin_format`
+- **TEST** `test_validation_invalid_gtin`
 
 #### Scenario: Invalid price format fails validation
 - **IF** `price` is not in `<number> <currency>` format
 - **THEN** the row SHALL be marked `invalid` with reason `price_format`
+- **TEST** `test_validation_invalid_price_format`
 
 ### Requirement: Validation report
 The system SHALL emit a summary report of valid vs invalid rows after validation.
@@ -49,6 +55,7 @@ The system SHALL emit a summary report of valid vs invalid rows after validation
 - **WHEN** a feed of N rows is validated
 - **THEN** the report SHALL report `valid + invalid == N` and list each invalid
   row's reason
+- **TEST** `test_validation_report_counts_consistent`
 
 ## Tests
 
