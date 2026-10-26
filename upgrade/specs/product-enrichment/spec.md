@@ -14,11 +14,13 @@ image and known tags, without requiring business data.
 - **WHEN** a product row with `image_url` and known tags is submitted for enrichment
 - **THEN** the system SHALL produce `gender`, `material`, `pattern`,
   `google_product_category`, an improved `title`, and a `description`
+- **TEST** `test_enrich_single_row_returns_inferable_fields`
 
 #### Scenario: Missing image is handled gracefully
 - **IF** the `image_url` cannot be downloaded
 - **THEN** the system SHALL skip image-derived fields and still return the fields
   derivable from text tags, flagging the row as `partial`
+- **TEST** `test_enrich_missing_image_returns_partial`
 
 ### Requirement: Structured title format
 The system SHALL build titles following the Google Shopping convention
@@ -27,11 +29,13 @@ The system SHALL build titles following the Google Shopping convention
 #### Scenario: Title assembled from available parts
 - **WHEN** `brand`, `gender`, `product_type`, `color` are available
 - **THEN** the generated `title` SHALL include those parts in the specified order
+- **TEST** `test_title_follows_structured_order`
 
 #### Scenario: Title degrades when parts are missing
 - **IF** `brand` or `size` is unavailable
 - **THEN** the title SHALL be assembled from the remaining available parts without
   inserting placeholder text
+- **TEST** `test_title_degrades_without_brand_or_size`
 
 ### Requirement: Google category mapping
 The system SHALL map the internal `product_type` to a valid
@@ -41,10 +45,12 @@ The system SHALL map the internal `product_type` to a valid
 - **WHEN** the internal `product_type` is `pants`
 - **THEN** `google_product_category` SHALL be set to the corresponding Google
   taxonomy path (e.g. `Apparel & Accessories > Clothing > Pants`)
+- **TEST** `test_category_mapping_known_type`
 
 #### Scenario: Unknown product type is flagged
 - **IF** the internal `product_type` has no mapping
 - **THEN** the row SHALL be flagged `needs_category_review` and left unmapped
+- **TEST** `test_category_mapping_unknown_type_flagged`
 
 ## Tests
 

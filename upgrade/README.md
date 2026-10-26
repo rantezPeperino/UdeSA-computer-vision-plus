@@ -32,3 +32,6 @@ Each milestone is independently testable and builds on the previous one.
 - All requirements use EARS-style `SHALL` statements.
 - All capabilities are introduced as `## ADDED Requirements` (greenfield; nothing is modified).
 - Every milestone ships with its own test scenarios defined via `#### Scenario:` blocks.
+- Each scenario names the test that covers it in a `` - **TEST** `test_name` `` line, after
+  its WHEN/THEN steps. `python scripts/spec_report.py` runs those tests and prints the
+  specs with each scenario checked off; a scenario without that line shows as `sin test`.
