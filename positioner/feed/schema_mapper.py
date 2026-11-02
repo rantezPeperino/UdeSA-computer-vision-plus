@@ -7,8 +7,11 @@ from typing import Optional
 from positioner.enrichment.models import EnrichedProduct
 
 # Required business fields — presence checked before mapping.
+# gtin is optional: Google requires it only for products that have one, and a
+# small brand selling its own garments usually does not. When present, the
+# validator checks its checksum.
 REQUIRED_BUSINESS_FIELDS: list[str] = [
-    'price', 'gtin', 'availability', 'link', 'brand', 'condition',
+    'price', 'availability', 'link', 'brand', 'condition',
 ]
 
 
@@ -77,7 +80,7 @@ def map_to_merchant(
         gender=enriched.gender,
         age_group=business.get('age_group') or 'adult',
         size=business.get('size'),
-        color=business.get('color'),
+        color=business.get('color') or enriched.color,
         material=enriched.material,
         link=business.get('link'),
         image_link=business.get('image_url'),

@@ -13,7 +13,7 @@ Los tres CSV etiquetados de `img-puller` y la taxonomía de los modelos de atrib
 | `taxonomia/shoes.labels.json` | `deep-tagger-api/deep_learning/torch_state/baseline_v1/multilabel_classifier_shoes_v1.labels.json` |
 | `taxonomia/pants.labels.json` | `deep-tagger-api/deep_learning/torch_state/baseline_v1/multilabel_classifier_pants_v1.labels.json` |
 
-- **Repositorio:** [MatLock/UdeSA-computer-vision](https://github.com/MatLock/UdeSA-computer-vision)
+- **Repositorio:** [MatLock/UdeSA-computer-vision](https://github.com/MatLock/UdeSA-computer-vision), el prototipo original. Este repo es un fork suyo, así que el commit también está en su historia y los mismos archivos están en `img-puller/data/` y en `deep-tagger-api/deep_learning/torch_state/baseline_v1/`.
 - **Commit:** `b9b3b2b7e023b668233a5b3ff39efee1f66123ec`
 - **Fecha de extracción:** 2026-10-20
 - El SHA-256 y el tamaño de cada archivo están en [`origen.csv`](origen.csv). Si un archivo no coincide con su hash, no es la muestra.

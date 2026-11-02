@@ -6,7 +6,7 @@
 
 **Equipo:** Jorge Federico Flores, Nicolás Velázquez, Nilayvi Barrientos, Rubén Ortigoza
 
-**Muestra** (nombre y ruta en el repo): CSV etiquetados de `img-puller` (tops, shoes y pants), en [`data/muestra/`](../data/muestra/) de [MatLock/UdeSA-toi](https://github.com/MatLock/UdeSA-toi). Salen del prototipo [MatLock/UdeSA-computer-vision](https://github.com/MatLock/UdeSA-computer-vision)
+**Muestra** (nombre y ruta en el repo): CSV etiquetados de `img-puller` (tops, shoes y pants), en [`data/muestra/`](../data/muestra/) de [rantezPeperino/UdeSA-computer-vision-plus](https://github.com/rantezPeperino/UdeSA-computer-vision-plus). Salen del prototipo [MatLock/UdeSA-computer-vision](https://github.com/MatLock/UdeSA-computer-vision)
 
 **Fecha:** 2026-10-20
 

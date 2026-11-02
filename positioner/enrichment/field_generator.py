@@ -30,7 +30,10 @@ def enrich_product(row: dict) -> EnrichedProduct:
     Args:
         row: dict matching pants_google_500.csv schema.  Required key: 'image_url'.
              Optional keys used: 'brand', 'size', 'color', 'gender',
-             'material', 'pattern'.
+             'material', 'pattern'.  These are the values declared by the
+             brand: gender, material and pattern are passed through as-is
+             (no model predicts them), and a declared color wins over the
+             K-Means prediction.
 
     Returns:
         EnrichedProduct with status 'ok', 'partial', or 'needs_category_review'.
@@ -56,13 +59,14 @@ def enrich_product(row: dict) -> EnrichedProduct:
         color_names, _ = k_means.predict_k_colors(img_array)
         blip_title = blip_transformer.predict_product_title(img_array)
 
-    # ── 4. Resolve final field values (image model wins; row is fallback) ─────
-    gender = ml_tags.get("gender") or row.get("gender")
-    material = ml_tags.get("material") or row.get("material")
-    pattern = ml_tags.get("pattern") or row.get("pattern")
-    color = (
-        ", ".join(sorted(color_names)) if color_names else None
-    ) or row.get("color")
+    # ── 4. Resolve final field values ─────────────────────────────────────────
+    # gender, material and pattern: declared by the brand, never predicted.
+    # color: the brand's declared value wins; K-Means fills the gap.
+    gender = row.get("gender")
+    material = row.get("material")
+    pattern = row.get("pattern")
+    predicted_color = ", ".join(sorted(color_names)) if color_names else None
+    color = row.get("color") or predicted_color
 
     # ── 5. Attribute for structured title ─────────────────────────────────────
     attribute = next((ml_tags[k] for k in _ATTR_KEYS if k in ml_tags), None)
@@ -100,6 +104,8 @@ def enrich_product(row: dict) -> EnrichedProduct:
         gender=gender,
         material=material,
         pattern=pattern,
+        color=color,
+        predicted_color=predicted_color,
         google_product_category=google_category,
         title=title,
         description=description,

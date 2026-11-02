@@ -1,19 +1,27 @@
 # Milestone 1 — Product Enrichment
 
-Fills the product fields that are **inferable** from the image and existing tags,
-reusing the current CV/LLM pipeline. Prepares each product so it can later be mapped
-to the Google Merchant schema.
+Fills the product fields that are **inferable** from the image, reusing the current
+CV/LLM pipeline, and carries through the fields the brand declares. Prepares each
+product so it can later be mapped to the Google Merchant schema.
+
+Inferred from the image: `google_product_category` (from the TinyVGG product type),
+color (K-Means), the title attribute (multilabel classifier) and `description`
+(Claude). Declared by the brand and never predicted: `gender`, `material`,
+`pattern`, `size`. A declared color wins over the predicted one; both are kept.
 
 ## ADDED Requirements
 
 ### Requirement: Inferable field generation
-The system SHALL generate inferable Google-relevant fields for a product from its
-image and known tags, without requiring business data.
+The system SHALL generate the inferable Google-relevant fields for a product from
+its image, and SHALL pass through the fields declared by the brand without
+inventing them.
 
 #### Scenario: Enrich a single product row
-- **WHEN** a product row with `image_url` and known tags is submitted for enrichment
-- **THEN** the system SHALL produce `gender`, `material`, `pattern`,
-  `google_product_category`, an improved `title`, and a `description`
+- **WHEN** a product row with `image_url` and the brand's declared fields is
+  submitted for enrichment
+- **THEN** the system SHALL produce `google_product_category`, `color`,
+  `predicted_color`, a structured `title` and a `description`, and SHALL return
+  the declared `gender`, `material` and `pattern` unchanged
 - **TEST** `test_enrich_single_row_returns_inferable_fields`
 
 #### Scenario: Missing image is handled gracefully
