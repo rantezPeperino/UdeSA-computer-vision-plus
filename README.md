@@ -67,7 +67,7 @@ positioner/             # NEW — Google Ads positioning pipeline
   feed/                 # M2: Merchant schema mapping + validation
   publishing/           # M3: Merchant Center upload
   ads/                  # M4: campaign management + optimization loop
-  tests/                # 26 unit tests (no GPU, no network required)
+  tests/                # 33 unit tests (no GPU, no network required)
 upgrade/                # Specs, proposal, and synthetic test data
   data/                 # 1,500 synthetic products (pants/shoes/tops CSVs)
   specs/                # OpenSpec per milestone
@@ -152,10 +152,13 @@ report  = build_report([result, ...])            # valid_count + invalid_count =
 
 Uploads the validated feed to Google Merchant Center via the Merchant API. Credentials come exclusively from environment variables — never from the repository.
 
+Tested end to end against a Merchant Center test account — accounts, setup steps and where to see the products: [`upgrade/MERCHANT_SETUP.md`](upgrade/MERCHANT_SETUP.md).
+
 **Required environment variables:**
 ```bash
 GOOGLE_SERVICE_ACCOUNT_PATH=/path/to/key.json
 MERCHANT_ID=123456789
+MERCHANT_DATA_SOURCE_ID=987654   # API data source in Merchant Center (needed to upload)
 MERCHANT_ENV=test          # or "production"
 ```
 
@@ -209,10 +212,10 @@ No GPU, no network, no credentials required — all external calls are mocked.
 # From the workspace root
 python -m unittest positioner.tests.test_enrichment -v   # M1 — 6 tests
 python -m unittest positioner.tests.test_feed -v         # M2 — 7 tests
-python -m unittest positioner.tests.test_publishing -v   # M3 — 6 tests
+python -m unittest positioner.tests.test_publishing -v   # M3 — 13 tests
 python -m unittest positioner.tests.test_ads -v          # M4 — 7 tests
 
-# All 26 at once
+# All 33 at once
 python -m unittest discover -s positioner/tests -v
 ```
 
