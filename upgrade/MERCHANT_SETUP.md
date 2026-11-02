@@ -4,6 +4,10 @@ El 2 de noviembre de 2026 implementamos las llamadas reales a la Merchant API en
 `positioner/publishing/` y las probamos de punta a punta. Subimos un producto del
 CSV sintético a una cuenta de prueba de Merchant Center y Google lo aprobó.
 
+Primero lo probamos para US, con el feed viejo en dólares. Cuando el feed pasó a
+Argentina (precios en ARS, títulos en castellano), sumamos una fuente de datos y un
+servicio de envíos para AR. Ahora `MerchantClient` usa `es` / `AR` por defecto.
+
 ## Cuentas e IDs
 
 | Qué | Valor |
@@ -12,8 +16,10 @@ CSV sintético a una cuenta de prueba de Merchant Center y Google lo aprobó.
 | Service account | `merchant-uploader@udesa-toi.iam.gserviceaccount.com` |
 | Cuenta real de Merchant Center | `5897867062` ("test-udesa-merchant"), sitio `https://matlock.github.io/` |
 | **Cuenta de prueba** (acá van los productos) | `5897870917` ("UdeSA test") |
-| Fuente de datos de tipo API | `10789365395` (idioma `en`, país `US`) |
-| Producto subido | `11888123`, "TrendWear Women's Navy Blue Denim Regular Fit Pant Trousers": **aprobado** |
+| **Fuente de datos para Argentina** (la que usa el código) | `10789583598` (idioma `es`, país `AR`) |
+| Fuente de datos de la primera prueba | `10789365395` (idioma `en`, país `US`) |
+| Producto para Argentina | `11885326`, "ElegantLine Pantalón unisex de poliéster verde talle L", 135444.24 ARS: **aprobado** |
+| Producto de la primera prueba | `11888123`, "TrendWear Women's Navy Blue Denim Regular Fit Pant Trousers", en USD: **aprobado** |
 
 La clave JSON de la service account **no está en el repo**. Cada uno la guarda en
 `~/.config/google/` con permisos `600`, y nunca se commitea.
@@ -66,7 +72,7 @@ Center.
 ```bash
 export GOOGLE_SERVICE_ACCOUNT_PATH=~/.config/google/<clave>.json
 export MERCHANT_ID=5897870917
-export MERCHANT_DATA_SOURCE_ID=10789365395
+export MERCHANT_DATA_SOURCE_ID=10789583598
 ```
 
 ```python
@@ -90,16 +96,20 @@ en otra cuenta. Todos usan la service account.
 1. **Registro del proyecto**: `developerRegistration:registerGcp` sobre la cuenta real.
 2. **Cuenta de prueba**: `createTestAccount` desde la cuenta real.
 3. **Términos de Servicio**: `termsOfService/135:accept` para la cuenta de prueba
-   (región US). Tardaron unos 4 minutos en propagarse.
-4. **Fuente de datos**: una fuente de tipo API, con idioma `en` y país `US`, que
-   coinciden con los valores por defecto de `MerchantClient`.
+   (región US). Tardaron unos 4 minutos en propagarse. Para publicar en Argentina no
+   hizo falta aceptar los de AR: la región del negocio de la cuenta es US.
+4. **Fuentes de datos**: dos de tipo API. La de `es` / `AR` coincide con los valores
+   por defecto de `MerchantClient`; la de `en` / `US` quedó de la primera prueba.
+   Cada producto tiene que ir a la fuente de su idioma y país.
 5. **Sitio de la cuenta de prueba**: `https://matlock.github.io/`. Los links de los
    productos tienen que ser de ese mismo dominio.
-6. **Envíos**: un servicio de envío gratis a US. Hay que indicar
-   `shipment_type: DELIVERY`. Sin ese campo, Google responde OK pero no guarda nada.
+6. **Envíos**: dos servicios de envío gratis, uno a US en USD y otro a AR en ARS.
+   La configuración se reemplaza entera, así que cada `insert` tiene que llevar todos
+   los servicios. Hay que indicar `shipment_type: DELIVERY`: sin ese campo, Google
+   responde OK pero no guarda nada. Lo mismo pasó con el servicio de AR cuando se
+   llamaba "Estándar AR"; con el nombre sin tilde se guardó.
 
 ## Pendientes
 
 - **M4.** Las cuentas de prueba de Merchant Center no se pueden vincular a Google Ads.
   Para probar campañas va a hacer falta usar la cuenta real.
-- **Ruben.** No está invitado porque su Hotmail no tiene una cuenta de Google asociada.

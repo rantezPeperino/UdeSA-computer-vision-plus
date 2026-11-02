@@ -176,21 +176,21 @@ def _full_product(product_id: str = 'r1') -> MerchantProduct:
     """A product shaped like a pants_google_500.csv row after M2."""
     return MerchantProduct(
         id=product_id,
-        title="ModernFit Women's Gray Silk Loose Fit Pant",
-        description='Comfortable loose fit pant.',
+        title='ModernFit Pantalón mujer de seda gris talle XS',
+        description='Pantalón de seda en color gris, rayado.',
         google_product_category='Apparel & Accessories > Clothing > Pants',
         gender='female',
         age_group='adult',
         size='XS',
         color='gray',
         material='Silk',
-        link='https://store.example.com/pants/11876597',
+        link='https://matlock.github.io/?category=pants&product=11876597',
         image_link='https://example.com/11876597.jpg',
-        price='25.32 USD',
+        price='45999.90 ARS',
         availability='in_stock',
         brand='ModernFit',
         condition='new',
-        gtin='0000011876597',
+        gtin='7790392405141',
         pattern='Striped',
     )
 
@@ -221,13 +221,13 @@ class MerchantApiTests(unittest.TestCase):
 
         product_input = request.product_input
         self.assertEqual(product_input.offer_id, 'r1')
-        self.assertEqual(product_input.content_language, 'en')
-        self.assertEqual(product_input.feed_label, 'US')
+        self.assertEqual(product_input.content_language, 'es')
+        self.assertEqual(product_input.feed_label, 'AR')
 
         attrs = product_input.product_attributes
-        self.assertEqual(attrs.price.amount_micros, 25_320_000)
-        self.assertEqual(attrs.price.currency_code, 'USD')
-        self.assertEqual(list(attrs.gtins), ['0000011876597'])
+        self.assertEqual(attrs.price.amount_micros, 45_999_900_000)
+        self.assertEqual(attrs.price.currency_code, 'ARS')
+        self.assertEqual(list(attrs.gtins), ['7790392405141'])
         self.assertEqual(attrs.availability, merchant.Availability.IN_STOCK)
         self.assertEqual(attrs.condition, merchant.Condition.NEW)
         self.assertEqual(attrs.gender, merchant.Gender.FEMALE)
@@ -266,7 +266,7 @@ class MerchantApiTests(unittest.TestCase):
         client._products_client.get_product.return_value = merchant.Product(
             product_status=merchant.ProductStatus(
                 destination_statuses=[
-                    merchant.ProductStatus.DestinationStatus(approved_countries=['US']),
+                    merchant.ProductStatus.DestinationStatus(approved_countries=['AR']),
                 ],
             ),
         )
@@ -274,7 +274,7 @@ class MerchantApiTests(unittest.TestCase):
         status = client._get_status('p1')
 
         client._products_client.get_product.assert_called_once_with(
-            name='accounts/merchant-1/products/en~US~p1',
+            name='accounts/merchant-1/products/es~AR~p1',
         )
         self.assertEqual(status.status, 'approved')
         self.assertEqual(status.issues, [])
@@ -285,8 +285,8 @@ class MerchantApiTests(unittest.TestCase):
         client._products_client.get_product.return_value = merchant.Product(
             product_status=merchant.ProductStatus(
                 destination_statuses=[
-                    merchant.ProductStatus.DestinationStatus(approved_countries=['US']),
-                    merchant.ProductStatus.DestinationStatus(disapproved_countries=['US']),
+                    merchant.ProductStatus.DestinationStatus(approved_countries=['AR']),
+                    merchant.ProductStatus.DestinationStatus(disapproved_countries=['AR']),
                 ],
                 item_level_issues=[
                     merchant.ProductStatus.ItemLevelIssue(

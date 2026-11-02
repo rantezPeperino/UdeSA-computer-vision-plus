@@ -42,8 +42,8 @@ class MerchantClient:
         self,
         credentials: Credentials,
         environment: Environment,
-        content_language: str = 'en',
-        feed_label: str = 'US',
+        content_language: str = 'es',
+        feed_label: str = 'AR',
     ) -> None:
         """Store config. Makes NO network calls.
 
@@ -52,6 +52,7 @@ class MerchantClient:
             environment:      TEST or PRODUCTION.
             content_language: ISO 639-1 language of titles/descriptions.
             feed_label:       Merchant Center feed label (usually the target country).
+            Defaults match the synthetic feed: Spanish titles, prices in ARS.
         """
         self.credentials = credentials
         self.environment = environment
@@ -235,7 +236,7 @@ class MerchantClient:
 
 
 def _parse_price(price: str) -> Price:
-    """Convert a feed price like '25.32 USD' into a Merchant API Price.
+    """Convert a feed price like '45999.00 ARS' into a Merchant API Price.
 
     Raises:
         ValueError: if the price is not '<amount> <currency>'.
