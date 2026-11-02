@@ -32,9 +32,9 @@ Common fields across all three files:
 | `relative_path` | path | `images/pants/11876597.jpg` | Local image path |
 | `brand` | string | `ModernFit` | Business field (synthetic) |
 | `price` | string | `25.32 USD` | Business field (synthetic) |
-| `gtin` | string | `0000011876597` | Business field (synthetic) |
+| `gtin` | string | `0000118765976` | Business field (synthetic) |
 | `availability` | enum | `in_stock` | Business field (always in_stock here) |
-| `link` | URL | `https://store.example.com/...` | Business field (synthetic) |
+| `link` | URL | `https://matlock.github.io/?category=pants&product=11876597` | Business field (synthetic) |
 | `condition` | enum | `new` | Business field (always new here) |
 | `gender` | enum | `female` | Inferable field (synthetic) |
 | `material` | string | `Silk` | Inferable field (synthetic) |

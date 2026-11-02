@@ -93,7 +93,7 @@ Creates campaigns, retrieves metrics, runs optimization loop.
 - `price` (random 19.99–149.99 USD)
 - `gtin` (generated GTIN-13)
 - `availability` (always `in_stock` for demo)
-- `link` (https://store.example.com/...)
+- `link` (https://matlock.github.io/?category=...&product=...)
 - `condition` (always `new`)
 
 **Inferable fields (generated):**

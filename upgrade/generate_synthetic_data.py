@@ -18,6 +18,10 @@ SOURCE_SHOES = Path("img-puller/data/shoes_tags.csv")
 SOURCE_TOPS = Path("img-puller/data/tops_tags.csv")
 OUTPUT_DIR = Path("upgrade/data")
 
+# Product links must share the domain of the Merchant Center account's website,
+# or Google disapproves them (url_does_not_match_homepage).
+STORE_URL = "https://matlock.github.io/"
+
 # Synthetic data pools (realistic but clearly synthetic for test/demo)
 BRANDS = ["StyleCo", "FashionHub", "TrendWear", "ClassicStyle", "ModernFit", "ElegantLine"]
 MATERIALS = ["Cotton", "Polyester", "Cotton Blend", "Denim", "Linen", "Wool", "Silk"]
@@ -49,13 +53,15 @@ DESC_TEMPLATES = {
 
 
 def generate_gtin(product_id: str) -> str:
-    """Generate a fake but valid GTIN-13 (just use the id padded)."""
-    return str(int(product_id) % 10000000000000).zfill(13)
+    """Generate a fake but valid GTIN-13: the id padded to 12 digits plus a GS1 check digit."""
+    body = str(int(product_id) % 10**12).zfill(12)
+    total = sum(int(d) * (1 if i % 2 == 0 else 3) for i, d in enumerate(body))
+    return body + str((10 - total % 10) % 10)
 
 
 def generate_link(product_id: str, category: str) -> str:
-    """Generate a fake product link."""
-    return f"https://store.example.com/{category}/{product_id}"
+    """Generate a product link on the site claimed in Merchant Center (see MERCHANT_SETUP.md)."""
+    return f"{STORE_URL}?category={category}&product={product_id}"
 
 
 def generate_price() -> str:
