@@ -19,6 +19,9 @@ if _WS_ROOT not in sys.path:
 import unittest  # noqa: E402
 from unittest.mock import patch, MagicMock  # noqa: E402
 
+from google.api_core import exceptions as google_exceptions  # noqa: E402
+from google.shopping import merchant_products_v1 as merchant  # noqa: E402
+
 from positioner.publishing.environment import Environment, get_environment  # noqa: E402
 from positioner.publishing.credential_loader import (  # noqa: E402
     Credentials,
@@ -166,6 +169,161 @@ class PublishingTests(unittest.TestCase):
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0].product_id, 'p1')
         self.assertEqual(results[0].status, 'approved')
+
+
+# ── 4. Merchant API calls (gapic clients mocked, no network) ──────────────────
+def _full_product(product_id: str = 'r1') -> MerchantProduct:
+    """A product shaped like a pants_google_500.csv row after M2."""
+    return MerchantProduct(
+        id=product_id,
+        title='ModernFit Pantalón mujer de seda gris talle XS',
+        description='Pantalón de seda en color gris, rayado.',
+        google_product_category='Apparel & Accessories > Clothing > Pants',
+        gender='female',
+        age_group='adult',
+        size='XS',
+        color='gray',
+        material='Silk',
+        link='https://matlock.github.io/?category=pants&product=11876597',
+        image_link='https://example.com/11876597.jpg',
+        price='45999.90 ARS',
+        availability='in_stock',
+        brand='ModernFit',
+        condition='new',
+        gtin='7790392405141',
+        pattern='Striped',
+    )
+
+
+class MerchantApiTests(unittest.TestCase):
+
+    def _client(self, data_source_id='ds-7') -> MerchantClient:
+        creds = Credentials(
+            service_account_path='/fake/key.json',
+            merchant_id='merchant-1',
+            data_source_id=data_source_id,
+        )
+        client = MerchantClient(creds, Environment.TEST)
+        client._inputs_client = MagicMock()
+        client._products_client = MagicMock()
+        return client
+
+    def test_upload_sends_product_to_data_source(self) -> None:
+        """_upload_product inserts the converted product into the configured data source."""
+        client = self._client()
+
+        result = client._upload_product(_full_product())
+
+        self.assertTrue(result.success)
+        request = client._inputs_client.insert_product_input.call_args.kwargs['request']
+        self.assertEqual(request.parent, 'accounts/merchant-1')
+        self.assertEqual(request.data_source, 'accounts/merchant-1/dataSources/ds-7')
+
+        product_input = request.product_input
+        self.assertEqual(product_input.offer_id, 'r1')
+        self.assertEqual(product_input.content_language, 'es')
+        self.assertEqual(product_input.feed_label, 'AR')
+
+        attrs = product_input.product_attributes
+        self.assertEqual(attrs.price.amount_micros, 45_999_900_000)
+        self.assertEqual(attrs.price.currency_code, 'ARS')
+        self.assertEqual(list(attrs.gtins), ['7790392405141'])
+        self.assertEqual(attrs.availability, merchant.Availability.IN_STOCK)
+        self.assertEqual(attrs.condition, merchant.Condition.NEW)
+        self.assertEqual(attrs.gender, merchant.Gender.FEMALE)
+        self.assertEqual(attrs.age_group, merchant.AgeGroup.ADULT)
+        self.assertEqual(attrs.material, 'Silk')
+
+    def test_upload_without_data_source_aborts(self) -> None:
+        """A missing MERCHANT_DATA_SOURCE_ID aborts upload_feed instead of failing every product."""
+        client = self._client(data_source_id=None)
+        report = build_report([ValidationResult(row_id='r1', valid=True, reasons=[])])
+
+        with self.assertRaises(CredentialError):
+            client.upload_feed(report, [_full_product()])
+        client._inputs_client.insert_product_input.assert_not_called()
+
+    def test_upload_invalid_enum_is_a_product_failure(self) -> None:
+        """An availability value the API does not accept fails only that product."""
+        client = self._client()
+        bad = _full_product('r2')
+        bad.availability = 'maybe'
+        report = build_report([
+            ValidationResult(row_id='r1', valid=True, reasons=[]),
+            ValidationResult(row_id='r2', valid=True, reasons=[]),
+        ])
+
+        results = client.upload_feed(report, [_full_product('r1'), bad])
+
+        self.assertTrue(results[0].success)
+        self.assertFalse(results[1].success)
+        self.assertIn('maybe', results[1].error)
+        self.assertEqual(client._inputs_client.insert_product_input.call_count, 1)
+
+    def test_status_reads_product_by_language_label_and_offer(self) -> None:
+        """_get_status asks for accounts/{id}/products/{lang}~{label}~{offer}."""
+        client = self._client()
+        client._products_client.get_product.return_value = merchant.Product(
+            product_status=merchant.ProductStatus(
+                destination_statuses=[
+                    merchant.ProductStatus.DestinationStatus(approved_countries=['AR']),
+                ],
+            ),
+        )
+
+        status = client._get_status('p1')
+
+        client._products_client.get_product.assert_called_once_with(
+            name='accounts/merchant-1/products/es~AR~p1',
+        )
+        self.assertEqual(status.status, 'approved')
+        self.assertEqual(status.issues, [])
+
+    def test_status_disapproved_lists_issues(self) -> None:
+        """Any disapproved destination makes the product disapproved, with its issues."""
+        client = self._client()
+        client._products_client.get_product.return_value = merchant.Product(
+            product_status=merchant.ProductStatus(
+                destination_statuses=[
+                    merchant.ProductStatus.DestinationStatus(approved_countries=['AR']),
+                    merchant.ProductStatus.DestinationStatus(disapproved_countries=['AR']),
+                ],
+                item_level_issues=[
+                    merchant.ProductStatus.ItemLevelIssue(
+                        code='invalid_gtin',
+                        description='Invalid GTIN',
+                        attribute='gtin',
+                    ),
+                ],
+            ),
+        )
+
+        status = client._get_status('p1')
+
+        self.assertEqual(status.status, 'disapproved')
+        self.assertEqual(status.issues, ['invalid_gtin: Invalid GTIN (gtin)'])
+
+    def test_status_not_found_is_pending(self) -> None:
+        """A product Merchant Center has not processed yet is reported as pending."""
+        client = self._client()
+        client._products_client.get_product.side_effect = google_exceptions.NotFound('nope')
+
+        status = client._get_status('p1')
+
+        self.assertEqual(status.status, 'pending')
+        self.assertEqual(len(status.issues), 1)
+
+    def test_bad_key_file_raises_credential_error(self) -> None:
+        """A key path that does not exist surfaces as CredentialError, not a raw OSError."""
+        creds = Credentials(
+            service_account_path='/does/not/exist.json',
+            merchant_id='merchant-1',
+            data_source_id='ds-7',
+        )
+        client = MerchantClient(creds, Environment.TEST)
+
+        with self.assertRaises(CredentialError):
+            client._upload_product(_full_product())
 
 
 if __name__ == '__main__':

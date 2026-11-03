@@ -25,7 +25,7 @@ Orden en los tres archivos: `id`, `image_url`, los dos atributos de la categorí
 | `price` | Sintético | Entre 15.000,00 y 150.000,00, con formato `45999.00 ARS` |
 | `gtin` | Sintético | La mitad de las filas tiene un GTIN-13 con prefijo argentino (779) y dígito verificador correcto; la otra mitad no tiene, como una prenda de marca propia |
 | `availability` | Sintético | Siempre `in_stock` |
-| `link` | Sintético | `https://store.example.com/<categoría>/<id>` |
+| `link` | Sintético | `https://matlock.github.io/?category=<categoría>&product=<id>`: el dominio tiene que ser el del sitio de la cuenta de Merchant Center ([`MERCHANT_SETUP.md`](../MERCHANT_SETUP.md)) |
 | `condition` | Sintético | Siempre `new` |
 | `gender` | Sintético | `female`, `male`, `unisex` |
 | `material` | Sintético | Cotton, Polyester, Cotton Blend, Denim, Linen, Wool, Silk |
@@ -40,7 +40,7 @@ Orden en los tres archivos: `id`, `image_url`, los dos atributos de la categorí
 Ejemplo (calzado):
 
 ```
-10097473,https://asset1.ruecdn.com/images/product/131395/1313956101_RLLDTH_1.jpg,Casual,Slides,Tropical-Vacation,images/shoes/10097473.jpg,ElegantLine,130123.16 ARS,7790392405141,in_stock,https://store.example.com/shoes/10097473,new,male,Denim,Solid,khaki,38,adult,Apparel & Accessories > Shoes,ElegantLine Chinelas hombre de denim caqui talle 38,"Chinelas de denim en color caqui, liso. Pensado para vacaciones en clima cálido."
+10097473,https://asset1.ruecdn.com/images/product/131395/1313956101_RLLDTH_1.jpg,Casual,Slides,Tropical-Vacation,images/shoes/10097473.jpg,ElegantLine,130123.16 ARS,7790392405141,in_stock,https://matlock.github.io/?category=shoes&product=10097473,new,male,Denim,Solid,khaki,38,adult,Apparel & Accessories > Shoes,ElegantLine Chinelas hombre de denim caqui talle 38,"Chinelas de denim en color caqui, liso. Pensado para vacaciones en clima cálido."
 ```
 
 ## Cómo se usa en cada etapa

@@ -29,7 +29,7 @@ Cada etapa se cierra con todos sus escenarios en verde (`python scripts/spec_rep
 - [x] 3.4 Seguir ante fallas parciales y devolver el resultado de cada producto
 - [x] 3.5 Leer el estado de aprobación de cada producto
 - [x] 3.6 Tests con el cliente simulado (ver `specs/merchant-publishing/spec.md`)
-- [ ] 3.7 Llamadas reales a la Merchant API (`_upload_product`, `_get_status`)
+- [x] 3.7 Llamadas reales a la Merchant API (`_upload_product`, `_get_status`)
 
 ## Etapa 4 · Campañas
 

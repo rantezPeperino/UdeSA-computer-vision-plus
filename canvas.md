@@ -109,7 +109,7 @@ Lo que ya existe en el repo:
   3. Publicación: carga credenciales desde variables de entorno, apunta por defecto a una cuenta de prueba, sube solo las filas válidas y lee el estado de aprobación de cada producto.
   4. Campañas: crea o reutiliza una campaña de Shopping, trae métricas por producto y aplica una regla (CTR menor a 1% con al menos 100 impresiones) que propone pausar el producto y reescribir el título. Por defecto corre en modo simulación y no cambia nada.
 
-  La lógica de las cuatro etapas está escrita y probada: 28 escenarios de los specs pasan, con las APIs de Google simuladas. Las llamadas reales a Merchant API y a Google Ads API todavía no están implementadas.
+  La lógica de las cuatro etapas está escrita y probada: 28 escenarios de los specs pasan, con las APIs de Google simuladas. Las llamadas a Merchant API ya son reales y se probaron contra una cuenta de prueba de Merchant Center, con un producto en pesos para Argentina; la cuenta usa como web un sitio mínimo en `matlock.github.io`, porque Google exige un sitio verificado. Las de Google Ads API todavía no están implementadas.
 
 Lo que proponemos sumar:
 
@@ -413,3 +413,5 @@ Todas son fuentes secundarias (prensa y blogs). Hay que reemplazarlas por los in
 | 2026-10-26 | Todas | Versión 2: sumamos Google Shopping al caso (publicar y anunciar las prendas) y el repo pasa a ser el fork | Pasamos todo el proyecto al fork, que ya tenía el pipeline para Google |
 | 2026-10-26 | Secciones 3 y 5 | Material, género y talle los carga la marca, no el modelo. Sumamos lo medido en el Hito 2 | El prototipo no predice esos campos; resultados del Hito 2 |
 | 2026-10-26 | Fuentes | Fuentes 13 a 15, de Google | Chequear qué campos pide Google y si acepta Argentina |
+| 2026-11-02 | Sección 3 | La etapa 3 ya publica en Merchant Center de verdad: un producto del feed sintético, en pesos y para Argentina, quedó aprobado en una cuenta de prueba | Implementamos las llamadas reales a la Merchant API ([`upgrade/MERCHANT_SETUP.md`](upgrade/MERCHANT_SETUP.md)) |
+| 2026-11-02 | Sección 3 | Sumamos el sitio `matlock.github.io` como web de la cuenta de Merchant Center, y los links del feed sintético apuntan ahí | La Merchant API exige una cuenta real con sitio verificado, y Google rechaza los links de otro dominio |

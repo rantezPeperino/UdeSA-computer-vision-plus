@@ -18,3 +18,6 @@ __pycache__/
 data/images/
 .venv/
 .ipynb_checkpoints/
+
+# Clave de la service account de Google (Merchant API) — nunca commitear
+udesa-toi-6de201360a31.json

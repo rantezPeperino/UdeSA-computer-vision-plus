@@ -46,7 +46,8 @@ Ningún modelo del prototipo predice género, material ni estampa, así que el p
 ## Estado
 
 - La lógica de las cuatro etapas está escrita y sus 28 escenarios pasan, con las APIs de Google simuladas.
-- Las llamadas reales a Merchant API y a Google Ads API no están implementadas: los métodos que las harían (`_upload_product`, `_get_status`, `_find_campaign`, `_create_campaign`, `_update_campaign`, `pause_product`, `_fetch_metrics`) levantan `NotImplementedError`.
+- Las llamadas a Merchant API (`_upload_product`, `_get_status`) son reales y se probaron contra una cuenta de prueba de Merchant Center ([`MERCHANT_SETUP.md`](MERCHANT_SETUP.md)).
+- Las llamadas a Google Ads API no están implementadas: los métodos que las harían (`_find_campaign`, `_create_campaign`, `_update_campaign`, `pause_product`, `_fetch_metrics`) levantan `NotImplementedError`.
 - La regla de la etapa 4 no se puede validar con cuentas de prueba, porque no muestran anuncios ni devuelven métricas reales ([`requirements.md`](requirements.md)).
 
 ## Cómo se corren los tests

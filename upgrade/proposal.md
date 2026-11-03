@@ -34,7 +34,7 @@ El material, el género y el talle no se ven de forma confiable en una foto, y n
 ## Impacto
 
 - Código nuevo en el paquete `positioner/`. El endpoint `/predict-image` y la CLI de `img-puller` siguen funcionando igual.
-- Dependencias externas: cliente de Merchant API, cliente de Google Ads API y autenticación con cuenta de servicio. Las llamadas reales todavía no están implementadas.
+- Dependencias externas: cliente de Merchant API, cliente de Google Ads API y autenticación con cuenta de servicio. Las llamadas reales a Merchant API están implementadas; las de Google Ads API, todavía no.
 - Requiere un proyecto de Google Cloud y cuentas de prueba ([`requirements.md`](requirements.md)).
 
 ## Fuera de alcance

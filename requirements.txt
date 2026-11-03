@@ -7,3 +7,5 @@ ImageHash==4.3.2
 scikit-learn==1.7.2
 jupyter==1.1.1
 nbconvert==7.16.6
+google-auth==2.62.0
+google-shopping-merchant-products==1.9.0

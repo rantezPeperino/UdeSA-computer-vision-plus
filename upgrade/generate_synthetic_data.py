@@ -27,6 +27,11 @@ SOURCES = {
 }
 OUTPUT_DIR = Path("upgrade/data")
 
+# Los links tienen que ser del mismo dominio que el sitio de la cuenta de Merchant
+# Center; si no, Google rechaza el producto (url_does_not_match_homepage).
+# Ver upgrade/MERCHANT_SETUP.md.
+STORE_URL = "https://matlock.github.io/"
+
 # Pozos sintéticos. Las marcas son inventadas; los precios, en pesos argentinos.
 BRANDS = ["StyleCo", "FashionHub", "TrendWear", "ClassicStyle", "ModernFit", "ElegantLine"]
 PRICE_RANGE_ARS = (15000.00, 150000.00)
@@ -95,7 +100,7 @@ def enrich_row(row: dict, product_type: str, rng: random.Random) -> dict:
     row["price"] = f"{rng.uniform(*PRICE_RANGE_ARS):.2f} ARS"
     row["gtin"] = generate_gtin(rng) if rng.random() < GTIN_SHARE else ""
     row["availability"] = "in_stock"
-    row["link"] = f"https://store.example.com/{product_type}/{product_id}"
+    row["link"] = f"{STORE_URL}?category={product_type}&product={product_id}"
     row["condition"] = "new"
     row["gender"] = rng.choice(list(GENDERS))
     row["material"] = rng.choice(list(MATERIALS))

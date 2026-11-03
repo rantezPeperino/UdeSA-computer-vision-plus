@@ -21,7 +21,7 @@ Para correr el pipeline contra Google hacen falta cuentas, credenciales y datos 
 - **Desarrollo gratis completo:** una cuenta de prueba de Merchant Center, una de Google Ads y un proyecto de Google Cloud alcanzan para validar el flujo de punta a punta (feed → publicación → campaña → estado) sin gasto y sin anuncios públicos.
 - **Límite del modo gratis:** las cuentas de prueba no muestran anuncios ni devuelven métricas reales. Validan que la integración funciona, no el posicionamiento. La regla de la etapa 4 solo se puede probar de verdad en producción, con gasto.
 - **Merchant API:** la Content API for Shopping se dio de baja el 2026-08-18. El pipeline apunta a la Merchant API, que tiene sus propias cuentas de prueba.
-- **Estado del código:** las llamadas reales a las dos APIs todavía no están implementadas. Hoy los tests corren con las APIs simuladas ([`README.md`](README.md), sección Estado).
+- **Estado del código:** las llamadas a Merchant API son reales y se probaron contra una cuenta de prueba ([`MERCHANT_SETUP.md`](MERCHANT_SETUP.md)). Las de Google Ads API todavía no están implementadas ([`README.md`](README.md), sección Estado).
 
 ## Orden recomendado para armar el entorno gratis
 
@@ -32,11 +32,12 @@ Para correr el pipeline contra Google hacen falta cuentas, credenciales y datos 
 5. Configurar una **cuenta de servicio** y bajar su clave JSON.
 6. Guardar las credenciales fuera del repo (variables de entorno o un gestor de secretos) y nunca commitear claves.
 
-Variables de entorno que lee `positioner/publishing/` (`credential_loader.py` las dos primeras, `environment.py` la tercera):
+Variables de entorno que lee `positioner/publishing/` (`credential_loader.py` las tres primeras, `environment.py` la cuarta):
 
 ```bash
 GOOGLE_SERVICE_ACCOUNT_PATH=/ruta/a/la/clave.json
 MERCHANT_ID=123456789
+MERCHANT_DATA_SOURCE_ID=987654   # fuente de datos de tipo API (para subir)
 MERCHANT_ENV=test          # o "production"
 ```
 

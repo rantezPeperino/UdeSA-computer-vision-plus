@@ -54,7 +54,7 @@ Foto + datos de la marca
 └──────────────────────────────────┘
 ```
 
-**Estado:** la lógica de las cuatro etapas está escrita y sus 28 escenarios pasan con las APIs de Google simuladas. Las llamadas reales a Merchant API y a Google Ads API todavía no están implementadas ([`upgrade/README.md`](upgrade/README.md), sección Estado).
+**Estado:** la lógica de las cuatro etapas está escrita y sus 28 escenarios pasan con las APIs de Google simuladas. Las llamadas a Merchant API (etapa 3) ya son reales y se probaron contra una cuenta de prueba ([`upgrade/MERCHANT_SETUP.md`](upgrade/MERCHANT_SETUP.md)); las de Google Ads API (etapa 4) todavía no están implementadas ([`upgrade/README.md`](upgrade/README.md), sección Estado).
 
 ---
 
@@ -161,6 +161,7 @@ Sube el feed validado a Google Merchant Center con la Merchant API. Las credenci
 ```bash
 GOOGLE_SERVICE_ACCOUNT_PATH=/ruta/a/la/clave.json
 MERCHANT_ID=123456789
+MERCHANT_DATA_SOURCE_ID=987654   # fuente de datos de tipo API en Merchant Center (para subir)
 MERCHANT_ENV=test          # o "production"
 ```
 
@@ -175,6 +176,8 @@ client   = MerchantClient(creds, env)
 results  = client.upload_feed(report, products)  # saltea las filas inválidas
 statuses = client.get_product_statuses(ids)      # approved / disapproved / pending
 ```
+
+Probado de punta a punta contra una cuenta de prueba de Merchant Center: las cuentas, la configuración y dónde ver los productos están en [`upgrade/MERCHANT_SETUP.md`](upgrade/MERCHANT_SETUP.md).
 
 ### 4 · Campañas
 
@@ -203,11 +206,11 @@ Sin GPU, sin red y sin credenciales: todas las llamadas externas están simulada
 
 ```bash
 # Desde la raíz del repo
-python -m unittest discover -s positioner/tests -t . -v   # los 28 tests
+python -m unittest discover -s positioner/tests -t . -v   # los 35 tests
 
 python -m unittest positioner.tests.test_enrichment -v     # 1 · 6 tests
 python -m unittest positioner.tests.test_feed -v           # 2 · 9 tests
-python -m unittest positioner.tests.test_publishing -v     # 3 · 6 tests
+python -m unittest positioner.tests.test_publishing -v     # 3 · 13 tests
 python -m unittest positioner.tests.test_ads -v            # 4 · 7 tests
 ```
 
@@ -239,7 +242,7 @@ python upgrade/generate_synthetic_data.py
 | Métricas | En cero | CTR, ROAS y conversiones reales |
 | Datos | Sirve el feed sintético | Precios, links y stock reales; GTIN si la prenda lo tiene |
 
-Las llamadas reales a las dos APIs todavía no están implementadas, así que hoy esta prueba no se puede correr de punta a punta.
+La publicación en Merchant Center ya se puede probar de punta a punta ([`upgrade/MERCHANT_SETUP.md`](upgrade/MERCHANT_SETUP.md)). Las llamadas a Google Ads todavía no están implementadas, así que las campañas no.
 
 ---
 
