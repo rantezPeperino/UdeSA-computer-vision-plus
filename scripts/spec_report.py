@@ -10,6 +10,9 @@ Estados de un escenario:
     ↷ salteado      el test está marcado con skip
     ? sin test      el escenario no tiene línea TEST (spec escrito antes que el test)
 
+Un escenario cuyo nombre termina en `(Mocked)` se prueba con la API externa
+simulada; la marca sale en amarillo para que no se confunda con integración real.
+
 Sale con código 1 si algún escenario falló. Con --estricto, también si alguno
 quedó sin test.
 
@@ -35,6 +38,7 @@ TESTS = RAIZ / "positioner" / "tests"
 
 RE_TEST = re.compile(r"^- \*\*TEST\*\* `(\w+)`")
 RE_PASO = re.compile(r"^- \*\*(\w+)\*\* (.*)")
+RE_MOCKED = re.compile(r"\s*\(Mocked\)$")
 
 
 # ── Lectura de los spec.md ────────────────────────────────────────────────────
@@ -188,7 +192,10 @@ def main() -> int:
                 estado, detalle = estados[escenario.test] if escenario.test else ("sin test", "")
                 totales[estado] += 1
                 simbolo, codigo = SIMBOLOS[estado]
-                print(f"    {pintar(simbolo, codigo)} Scenario: {escenario.nombre}")
+                nombre = escenario.nombre
+                if m := RE_MOCKED.search(nombre):
+                    nombre = nombre[: m.start()] + " " + pintar("(Mocked)", "33")
+                print(f"    {pintar(simbolo, codigo)} Scenario: {nombre}")
                 if not args.sin_pasos:
                     for paso in escenario.pasos:
                         print(pintar(f"        {paso}", "2"))
