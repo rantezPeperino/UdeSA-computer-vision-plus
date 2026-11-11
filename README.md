@@ -183,7 +183,7 @@ Probado de punta a punta contra una cuenta de prueba de Merchant Center: las cue
 
 Encadena las tres etapas para una prenda. Dada la URL de la foto y los datos de la marca: revisa los datos obligatorios, descarga la imagen, la atribuye con los modelos del prototipo, valida la ficha, la sube a Merchant Center y espera a que Google la apruebe o la rechace. Se corta en la primera etapa que falla. La misma URL da siempre el mismo id de producto, así que correrlo dos veces actualiza el producto en vez de duplicarlo.
 
-Necesita las dependencias de `deep-tagger-api`, las variables de entorno de la etapa 3 y `ANTHROPIC_API_KEY` para la descripción:
+Necesita las dependencias de `deep-tagger-api`, las variables de entorno de la etapa 3 y una clave para generar la descripción: `OPENAI_API_KEY` o `ANTHROPIC_API_KEY` (con `LLM_PROVIDER=openai` o `anthropic` se elige uno si están las dos):
 
 ```bash
 python scripts/publish_from_url.py "https://.../foto.jpg" \

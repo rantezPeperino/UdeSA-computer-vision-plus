@@ -13,7 +13,7 @@ class EnrichedProduct:
       predicted from the image – google_product_category (from the TinyVGG
                                  product type), predicted_color (K-Means),
                                  title (attribute from the multilabel
-                                 classifier) and description (Claude LLM)
+                                 classifier) and description (Claude or OpenAI)
       declared by the brand    – gender, material and pattern; no model
                                  predicts them, so they are passed through
 

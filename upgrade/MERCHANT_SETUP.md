@@ -113,4 +113,4 @@ en otra cuenta. Todos usan la service account.
 
 - **M4.** Correr `scripts/publish_from_url.py` con los modelos reales contra esta
   cuenta de prueba. Usa las mismas variables de entorno de arriba, más
-  `ANTHROPIC_API_KEY` para la descripción.
+  `OPENAI_API_KEY` o `ANTHROPIC_API_KEY` para la descripción.

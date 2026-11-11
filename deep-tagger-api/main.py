@@ -8,7 +8,7 @@ from machine_learning import k_means
 from transformer import blip_transformer
 from deep_learning import product_type_classifier
 from deep_learning import multilabel_classifier
-from llm import claude_client
+from llm import description_client
 
 app = FastAPI()
 
@@ -35,7 +35,7 @@ def predict_from_image(request: DeepTaggerRequest) -> DeepTaggerResponse:
     **ml_tags,
   }
   title = blip_transformer.predict_product_title(img_array=img_array)
-  description = claude_client.generate_product_description(product_type=product_type,
+  description = description_client.generate_product_description(product_type=product_type,
                                                            title=title,
                                                            tags=tags)
   deep_tagger_response = DeepTaggerResponse(product_type=product_type,

@@ -15,7 +15,9 @@ duplicating it.
 Needs the deep-tagger-api dependencies (torch, transformers, etc.) and, to upload,
 the environment variables in upgrade/MERCHANT_SETUP.md:
     GOOGLE_SERVICE_ACCOUNT_PATH, MERCHANT_ID, MERCHANT_DATA_SOURCE_ID
-plus ANTHROPIC_API_KEY to generate the description.
+plus a key to generate the description: OPENAI_API_KEY or ANTHROPIC_API_KEY
+(LLM_PROVIDER=openai|anthropic picks one when both are set; see
+deep-tagger-api/llm/description_client.py).
 
 Usage (from the repo root):
     python scripts/publish_from_url.py <url> --brand StyleCo --price "45999.00 ARS" \\
@@ -26,7 +28,6 @@ Usage (from the repo root):
 from __future__ import annotations
 
 import argparse
-import os
 import sys
 from pathlib import Path
 
@@ -115,11 +116,19 @@ def main() -> int:
 
     client = None
     if not args.dry_run:
-        if not os.environ.get("ANTHROPIC_API_KEY"):
-            print("Missing ANTHROPIC_API_KEY: without it the description is placeholder text "
-                  "and would be uploaded as such to Merchant Center. Set it or run with --dry-run.",
-                  file=sys.stderr)
+        from llm import description_client  # from deep-tagger-api
+        try:
+            provider = description_client.provider()
+        except ValueError as error:
+            print(f"LLM_PROVIDER: {error}", file=sys.stderr)
             return 2
+        if provider is None:
+            print("Missing the language model key (OPENAI_API_KEY or ANTHROPIC_API_KEY, "
+                  "the one matching LLM_PROVIDER if it is set): without it the description "
+                  "is placeholder text and would be uploaded as such to Merchant Center. "
+                  "Set it or run with --dry-run.", file=sys.stderr)
+            return 2
+        print(f"Description generated with: {provider}")
         try:
             credentials = load_credentials()
         except CredentialError as error:

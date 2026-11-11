@@ -21,3 +21,4 @@ data/images/
 
 # Clave de la service account de Google (Merchant API) — nunca commitear
 udesa-toi-6de201360a31.json
+openai_key.txt
