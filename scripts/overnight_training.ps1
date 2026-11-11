@@ -6,9 +6,9 @@
 # partial progress survives a reboot.
 #
 # Usage (from any directory, with the API venv active):
-#   .\scripts\overnight_training.ps1                        # los 3 (default)
-#   .\scripts\overnight_training.ps1 -Types tops,shoes      # sólo esos dos
-#   .\scripts\overnight_training.ps1 -Types pants           # sólo pants
+#   .\scripts\overnight_training.ps1                        # all 3 (default)
+#   .\scripts\overnight_training.ps1 -Types tops,shoes      # only those two
+#   .\scripts\overnight_training.ps1 -Types pants           # only pants
 #
 # Notes:
 #   - Run with the deep-tagger-api/.venv activated before launching.
@@ -43,7 +43,7 @@ $allRuns = @(
 # Filter to only the requested types, preserving the canonical order above.
 $runs = $allRuns | Where-Object { $Types -contains $_.Type }
 if ($runs.Count -eq 0) {
-    Write-Error "Ningún tipo válido en -Types. Permitidos: tops, shoes, pants"
+    Write-Error "No valid type in -Types. Allowed: tops, shoes, pants"
     exit 1
 }
 

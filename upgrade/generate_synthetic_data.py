@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 """
-Genera el feed sintético de prueba a partir de las primeras 500 filas de cada CSV
-de img-puller. Agrega los campos que declara la marca (brand, price, gtin,
-availability, link, condition, gender, material, pattern, color, size, age_group)
-y los que arma el pipeline (google_product_category, title, description).
+Generates the synthetic test feed from the first 500 rows of each img-puller CSV.
+Adds the fields the brand declares (brand, price, gtin, availability, link,
+condition, gender, material, pattern, color, size, age_group) and the ones the
+pipeline builds (google_product_category, title, description).
 
-Todo lo agregado es sintético: se sortea con semilla fija y no mira la foto. Sirve
-para probar el contrato del feed, la validación y la publicación (M2 a M4), no para
-entrenar ni evaluar modelos.
+Everything added is synthetic: it is drawn with a fixed seed and does not look at
+the photo. It is for testing the feed contract, validation and publishing (M2 to
+M4), not for training or evaluating models.
 
-Uso (desde la raíz del repo):
+The feed targets Argentina, so titles and descriptions are generated in Spanish:
+the dictionaries below map each value to its Spanish wording.
+
+Usage (from the repo root):
     python upgrade/generate_synthetic_data.py
 """
 
@@ -27,16 +30,16 @@ SOURCES = {
 }
 OUTPUT_DIR = Path("upgrade/data")
 
-# Los links tienen que ser del mismo dominio que el sitio de la cuenta de Merchant
-# Center; si no, Google rechaza el producto (url_does_not_match_homepage).
-# Ver upgrade/MERCHANT_SETUP.md.
+# Links must be on the same domain as the Merchant Center account's website;
+# otherwise Google disapproves the product (url_does_not_match_homepage).
+# See upgrade/MERCHANT_SETUP.md.
 STORE_URL = "https://matlock.github.io/"
 
-# Pozos sintéticos. Las marcas son inventadas; los precios, en pesos argentinos.
+# Synthetic pools. The brands are made up; prices are in Argentine pesos.
 BRANDS = ["StyleCo", "FashionHub", "TrendWear", "ClassicStyle", "ModernFit", "ElegantLine"]
 PRICE_RANGE_ARS = (15000.00, 150000.00)
-GTIN_SHARE = 0.5          # la otra mitad no tiene GTIN, como una prenda de marca propia
-GS1_PREFIX_AR = "779"     # prefijo GS1 de Argentina
+GTIN_SHARE = 0.5          # the other half has no GTIN, like a private-label garment
+GS1_PREFIX_AR = "779"     # GS1 prefix for Argentina
 
 GENDERS = {"female": "mujer", "male": "hombre", "unisex": "unisex"}
 MATERIALS = {
@@ -57,7 +60,7 @@ SIZES = {
     "shoes": [str(n) for n in range(35, 45)],
 }
 
-# Mismos caminos que positioner/enrichment/category_mapper.py
+# Same paths as positioner/enrichment/category_mapper.py
 CATEGORY_MAP = {
     "pants": "Apparel & Accessories > Clothing > Pants",
     "shoes": "Apparel & Accessories > Shoes",
@@ -79,7 +82,7 @@ SEASONS = {
 
 
 def generate_gtin(rng: random.Random) -> str:
-    """GTIN-13 con prefijo argentino y dígito verificador GS1 correcto."""
+    """GTIN-13 with the Argentine prefix and a correct GS1 check digit."""
     body = GS1_PREFIX_AR + "".join(str(rng.randint(0, 9)) for _ in range(9))
     total = sum(int(d) * (1 if i % 2 == 0 else 3) for i, d in enumerate(body))
     return body + str((10 - total % 10) % 10)
@@ -92,10 +95,10 @@ def product_name(row: dict, product_type: str) -> str:
 
 
 def enrich_row(row: dict, product_type: str, rng: random.Random) -> dict:
-    """Agrega a la fila los campos sintéticos del feed."""
+    """Add the synthetic feed fields to the row."""
     product_id = row["id"]
 
-    # Campos que declara la marca
+    # Fields the brand declares
     row["brand"] = rng.choice(BRANDS)
     row["price"] = f"{rng.uniform(*PRICE_RANGE_ARS):.2f} ARS"
     row["gtin"] = generate_gtin(rng) if rng.random() < GTIN_SHARE else ""
@@ -109,7 +112,7 @@ def enrich_row(row: dict, product_type: str, rng: random.Random) -> dict:
     row["size"] = rng.choice(SIZES[product_type])
     row["age_group"] = "adult"
 
-    # Campos que arma el pipeline
+    # Fields the pipeline builds (Spanish wording, for the Argentine feed)
     row["google_product_category"] = CATEGORY_MAP[product_type]
 
     name = product_name(row, product_type)
@@ -130,20 +133,20 @@ def enrich_row(row: dict, product_type: str, rng: random.Random) -> dict:
 
 
 def process_csv(source: Path, product_type: str, output: Path, rng: random.Random) -> None:
-    print(f"Procesando {product_type} desde {source}...")
+    print(f"Processing {product_type} from {source}...")
     with open(source, "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         rows = [enrich_row(row, product_type, rng) for _, row in zip(range(MAX_ROWS), reader)]
 
     if not rows:
-        print(f"  ERROR: no se leyeron filas de {source}")
+        print(f"  ERROR: no rows read from {source}")
         return
 
     with open(output, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
         writer.writeheader()
         writer.writerows(rows)
-    print(f"  {len(rows)} filas en {output}")
+    print(f"  {len(rows)} rows in {output}")
 
 
 def main() -> None:

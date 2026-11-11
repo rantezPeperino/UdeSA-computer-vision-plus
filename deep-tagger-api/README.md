@@ -85,13 +85,18 @@ The model receives the image along with the prompt *"the product name is"* and g
 
 **Source:** `transformer/blip_transformer.py`
 
-### 5. Product Description Generation — Claude LLM
+### 5. Product Description Generation — Claude or OpenAI
 
-Once the product type, title, and tags have been determined by the previous models, they are sent to **Anthropic's Claude** (`claude-sonnet-4-20250514`) to generate a 2–3 sentence product description suitable for an e-commerce listing.
+Once the product type, title, and tags have been determined by the previous models, they are sent to an LLM to generate a 2–3 sentence product description suitable for an e-commerce listing. Both providers get the same prompt:
+
+- **Anthropic's Claude** (`claude-sonnet-4-20250514`), with `ANTHROPIC_API_KEY`.
+- **OpenAI** (`gpt-5-mini` by default; override with `OPENAI_MODEL`), with `OPENAI_API_KEY`.
+
+`LLM_PROVIDER=anthropic` or `LLM_PROVIDER=openai` picks one explicitly. Without it, the first provider with a key is used: Claude, then OpenAI.
 
 If no API key is configured, the endpoint still works and returns a placeholder description.
 
-**Source:** `llm/claude_client.py`
+**Source:** `llm/description_client.py` (provider choice), `llm/claude_client.py`, `llm/openai_client.py`, `llm/prompts.py`
 
 ## API
 
@@ -150,10 +155,11 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Set the API key for description generation (optional):
+Set an API key for description generation (optional), either one:
 
 ```bash
-export ANTHROPIC_API_KEY=your_key_here
+export OPENAI_API_KEY=your_key_here      # OpenAI
+export ANTHROPIC_API_KEY=your_key_here   # Claude
 ```
 
 ### Run
@@ -189,7 +195,7 @@ deep-tagger-api/
 │   ├── multilabel_classifier.py   # ResNet-18 attribute tagger
 │   └── torch_state/               # Saved model weights
 │       └── baseline_v1/           # Multilabel classifier checkpoints
-├── llm/claude_client.py           # Claude description generation
+├── llm/                           # Description generation (Claude or OpenAI)
 └── notebook/                      # Training & exploration notebooks
     ├── fashion_model_classifier_tiny_vgg.ipynb
     ├── multi_headed_cnn.ipynb

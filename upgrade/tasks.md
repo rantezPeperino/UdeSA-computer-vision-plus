@@ -31,14 +31,19 @@ Cada etapa se cierra con todos sus escenarios en verde (`python scripts/spec_rep
 - [x] 3.6 Tests con el cliente simulado (ver `specs/merchant-publishing/spec.md`)
 - [x] 3.7 Llamadas reales a la Merchant API (`_upload_product`, `_get_status`)
 
-## Etapa 4 · Campañas
+## Etapa 4 · Automatización: de la URL a Merchant Center
 
-- [x] 4.1 Crear o actualizar una campaña de Shopping
-- [x] 4.2 Traer métricas por producto (impresiones, clics, CTR, conversiones, costo)
-- [x] 4.3 Regla de optimización: CTR bajo con impresiones suficientes → proponer pausa y reescritura del título
-- [x] 4.4 Modo simulación por defecto
-- [x] 4.5 Tests con el cliente simulado (ver `specs/ads-optimization/spec.md`)
-- [ ] 4.6 Llamadas reales a la Google Ads API (`_find_campaign`, `_create_campaign`, `_update_campaign`, `pause_product`, `_fetch_metrics`)
+Reemplaza a la etapa de campañas, que quedó fuera de alcance porque crear una campaña y medirla cuesta dinero.
+
+- [x] 4.1 Revisar los datos obligatorios de la marca antes de descargar la imagen
+- [x] 4.2 Descargar y atribuir la imagen con la etapa 1; cortar si la descarga falla
+- [x] 4.3 Armar y validar la fila con la etapa 2; no subir si es inválida
+- [x] 4.4 Subir con la etapa 3, con un id estable derivado de la URL
+- [x] 4.5 Modo simulación (arma y valida sin subir)
+- [x] 4.6 Esperar el veredicto de Google, con tiempo límite
+- [x] 4.7 Tests con los modelos y el cliente simulados (ver `specs/url-to-merchant/spec.md`)
+- [x] 4.8 Script de línea de comandos (`scripts/publish_from_url.py`)
+- [x] 4.9 Correr el script con los modelos reales contra la cuenta de prueba de Merchant Center (2026-11-11: producto `11876597`, aprobado)
 
 ## Transversales
 

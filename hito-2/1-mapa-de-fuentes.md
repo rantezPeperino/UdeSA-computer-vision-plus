@@ -33,7 +33,7 @@
 | # | Quién del equipo la consigue | Para cuándo |
 |---|---|---|
 | 1 | Nicolás y Nilayvi: contactar 3 a 5 marcas argentinas chicas, empezando por las de las entrevistas de la sección 1 del canvas | Respuesta de las marcas: 2026-10-31. Los datos, para el Hito 3 |
-| 2 | Jorge: confirmar el origen y el permiso de uso de los CSV. Nicolás: armar la muestra con `scripts/armar_muestra.py` | 2026-10-24 |
+| 2 | Jorge: confirmar el origen y el permiso de uso de los CSV. Nicolás: armar la muestra con `scripts/build_sample.py` | 2026-10-24 |
 | 3 | Nilayvi: bajar `styles.csv`, verificar la licencia y contar las filas con título | 2026-10-27 |
 | 4 | Nadie en este hito. Queda para el Hito 3, si el veredicto lo sostiene | — |
 

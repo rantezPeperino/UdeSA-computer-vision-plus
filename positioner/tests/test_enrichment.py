@@ -29,7 +29,7 @@ _MOCK_MODULES = [
     "transformer",
     "transformer.blip_transformer",
     "llm",
-    "llm.claude_client",
+    "llm.description_client",
     "aux_functions",
     "aux_functions.auxiliary",
 ]
@@ -72,7 +72,7 @@ class EnrichmentTests(unittest.TestCase):
         }
         _fg.k_means.predict_k_colors.return_value = ({"black"}, [[0, 0, 0]])
         _fg.blip_transformer.predict_product_title.return_value = "pants"
-        _fg.claude_client.generate_product_description.return_value = "Great pants."
+        _fg.description_client.generate_product_description.return_value = "Great pants."
 
         row = {
             "image_url": "http://example.com/img.jpg",
@@ -104,7 +104,7 @@ class EnrichmentTests(unittest.TestCase):
         """When the image cannot be downloaded the row is flagged 'partial'."""
         # Arrange — image download fails
         _fg.download_image.side_effect = Exception("network error")
-        _fg.claude_client.generate_product_description.return_value = "fallback"
+        _fg.description_client.generate_product_description.return_value = "fallback"
 
         row = {
             "image_url": "http://bad.url/img.jpg",

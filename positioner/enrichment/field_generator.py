@@ -13,7 +13,7 @@ from machine_learning import k_means
 from transformer import blip_transformer
 from deep_learning import product_type_classifier
 from deep_learning import multilabel_classifier
-from llm import claude_client
+from llm import description_client
 
 # ── positioner imports ─────────────────────────────────────────────────────────
 from positioner.enrichment.models import EnrichedProduct
@@ -88,12 +88,12 @@ def enrich_product(row: dict) -> EnrichedProduct:
         if cat_status == "needs_category_review" and status == "ok":
             status = "needs_category_review"
 
-    # ── 8. Generate description via Claude ────────────────────────────────────
+    # ── 8. Generate description (Claude or OpenAI) ────────────────────────────
     tags = {k: v for k, v in ml_tags.items() if v is not None}
     if color:
         tags["color"] = color
 
-    description = claude_client.generate_product_description(
+    description = description_client.generate_product_description(
         product_type=product_type or "unknown",
         title=title,
         tags=tags,

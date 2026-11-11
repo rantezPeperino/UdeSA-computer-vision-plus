@@ -8,10 +8,10 @@ El prototipo genera, a partir de una foto, el tipo de prenda, el color dominante
 Capa 1 · Contenido del producto       ← lo que hace el prototipo
 Capa 2 · Feed de Google Merchant      ← no existía
 Capa 3 · Publicación                  ← no existía
-Capa 4 · Campañas y optimización      ← no existía
+Capa 4 · Automatización de punta a punta ← no existía
 ```
 
-Para el usuario del [canvas](../canvas.md) (quien carga el catálogo en una marca argentina chica o mediana), cada capa que falta es trabajo manual: completar los campos que pide Google, corregir los rechazos y mirar qué anuncios rinden.
+Para el usuario del [canvas](../canvas.md) (quien carga el catálogo en una marca argentina chica o mediana), cada capa que falta es trabajo manual: completar los campos que pide Google, subirlos y corregir los rechazos.
 
 ## Qué cambia
 
@@ -20,7 +20,7 @@ Se suman cuatro capacidades nuevas, sin modificar el comportamiento del prototip
 1. **product-enrichment**: corre el prototipo sobre la foto, arma un título con orden fijo y mapea el tipo de prenda a la taxonomía de Google. Los datos que solo conoce la marca pasan tal cual.
 2. **merchant-feed**: une lo enriquecido con los datos de la marca, lo lleva al esquema de Merchant Center y valida cada fila antes de publicar.
 3. **merchant-publishing**: carga las credenciales, apunta a una cuenta de prueba por defecto, sube solo las filas válidas y lee el estado de aprobación.
-4. **ads-optimization**: crea o reutiliza una campaña de Shopping, trae métricas por producto y aplica una regla de CTR que propone pausar el producto y reescribir su título, en modo simulación por defecto.
+4. **url-to-merchant**: encadena las tres anteriores. Dada la URL de una foto y los datos de la marca, descarga la imagen, la atribuye, valida la ficha, la sube a Merchant Center y espera el veredicto de Google. Reemplaza a la etapa de campañas (ver Fuera de alcance).
 
 ### Decisión de diseño: qué se infiere y qué declara la marca
 
@@ -34,7 +34,7 @@ El material, el género y el talle no se ven de forma confiable en una foto, y n
 ## Impacto
 
 - Código nuevo en el paquete `positioner/`. El endpoint `/predict-image` y la CLI de `img-puller` siguen funcionando igual.
-- Dependencias externas: cliente de Merchant API, cliente de Google Ads API y autenticación con cuenta de servicio. Las llamadas reales a Merchant API están implementadas; las de Google Ads API, todavía no.
+- Dependencias externas: cliente de Merchant API y autenticación con cuenta de servicio. Las llamadas reales a Merchant API están implementadas.
 - Requiere un proyecto de Google Cloud y cuentas de prueba ([`requirements.md`](requirements.md)).
 
 ## Fuera de alcance
@@ -43,4 +43,4 @@ El material, el género y el talle no se ven de forma confiable en una foto, y n
 - Inferir material, género, estampa o talle a partir de la foto.
 - Garantizar la aprobación de Google para datos inventados: el feed sintético de [`data/`](data/) es solo para cuentas de prueba.
 - Gastar en anuncios durante el desarrollo: todo se prueba con cuentas de prueba.
-- Ejecutar acciones sobre campañas sin aprobación humana: la etapa 4 propone y la persona decide.
+- Campañas de Google Ads y medición de su rendimiento: crear una campaña y medirla cuesta dinero, y las cuentas de prueba de Google Ads no muestran anuncios ni dan métricas. Se decidió el 2026-11-11 ([bitácora del canvas](../canvas.md#bitácora-de-revisiones)).

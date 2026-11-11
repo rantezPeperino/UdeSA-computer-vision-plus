@@ -34,9 +34,9 @@ Desde la raíz del repo, con Python 3.14:
 ```bash
 python -m venv .venv
 .venv/Scripts/python -m pip install -r requirements.txt     # en Linux/macOS: .venv/bin/python
-.venv/Scripts/python scripts/armar_muestra.py               # CSV y taxonomía, fijados al commit
-.venv/Scripts/python scripts/descargar_imagenes.py          # 300 imágenes en data/images/ (no se commitean)
-.venv/Scripts/python scripts/armar_planilla.py              # planilla y visor del re-etiquetado
+.venv/Scripts/python scripts/build_sample.py               # CSV y taxonomía, fijados al commit
+.venv/Scripts/python scripts/download_images.py          # 300 imágenes en data/images/ (no se commitean)
+.venv/Scripts/python scripts/build_labeling_sheet.py              # planilla y visor del re-etiquetado
 .venv/Scripts/jupyter nbconvert --to notebook --execute --inplace notebooks/eda_viabilidad.ipynb
 ```
 
@@ -44,7 +44,7 @@ El notebook no necesita red: el chequeo de URLs está cacheado en `data/cache/ur
 
 ## Exclusiones
 
-- Las imágenes no están en el repo: se bajan con `scripts/descargar_imagenes.py` a `data/images/`, que está en `.gitignore`.
+- Las imágenes no están en el repo: se bajan con `scripts/download_images.py` a `data/images/`, que está en `.gitignore`.
 - La muestra cubre solo tres categorías (tops, calzado y pantalones). Lo que diga el EDA no vale para vestidos, abrigos ni accesorios.
 - No hay título ni descripción: `img-puller/describer.py` nunca se corrió sobre estos CSV.
 - No se limpió nada. El encabezado repetido de `shoes_tags.csv` (`relative_path` dos veces) está tal cual vino.
