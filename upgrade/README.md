@@ -1,6 +1,6 @@
 # Pipeline de posicionamiento en Google Shopping
 
-Esta carpeta especifica la extensión del prototipo: pasar de un generador de atributos a partir de una foto a un pipeline que lleva la prenda hasta Google Merchant Center y Google Ads. El código está en [`positioner/`](../positioner/). El porqué, a quién le sirve y qué no sabemos todavía está en el [canvas](../canvas.md), sección 3.
+Esta carpeta especifica la extensión del prototipo: pasar de un generador de atributos a partir de una foto a un pipeline que, a partir de la URL de una foto, lleva la prenda hasta Google Merchant Center. El código está en [`positioner/`](../positioner/). El porqué, a quién le sirve y qué no sabemos todavía está en el [canvas](../canvas.md), sección 3.
 
 ## Contenido
 
@@ -22,7 +22,7 @@ Foto + datos de la marca
 1 · Enriquecimiento   → tipo de prenda, color, atributo, título, descripción, categoría de Google
 2 · Feed              → esquema de Merchant Center + validación de cada fila
 3 · Publicación       → credenciales, cuenta de prueba por defecto, solo filas válidas, estado de aprobación
-4 · Campañas          → campaña de Shopping, métricas, regla de CTR en modo simulación
+4 · Automatización   → de la URL de la foto a Merchant Center: descarga, atributos, validación, subida y veredicto
 ```
 
 Cada etapa usa la salida de la anterior y se prueba por separado.
@@ -32,7 +32,7 @@ Cada etapa usa la salida de la anterior y se prueba por separado.
 | 1 · Enriquecimiento | [`specs/product-enrichment/spec.md`](specs/product-enrichment/spec.md) | `positioner/enrichment/` | 6 |
 | 2 · Feed | [`specs/merchant-feed/spec.md`](specs/merchant-feed/spec.md) | `positioner/feed/` | 9 |
 | 3 · Publicación | [`specs/merchant-publishing/spec.md`](specs/merchant-publishing/spec.md) | `positioner/publishing/` | 6 |
-| 4 · Campañas | [`specs/ads-optimization/spec.md`](specs/ads-optimization/spec.md) | `positioner/ads/` | 7 |
+| 4 · Automatización | [`specs/url-to-merchant/spec.md`](specs/url-to-merchant/spec.md) | `positioner/automation/`, `scripts/publish_from_url.py` | 10 |
 
 ## Qué campos genera el pipeline y cuáles declara la marca
 
@@ -45,19 +45,19 @@ Ningún modelo del prototipo predice género, material ni estampa, así que el p
 
 ## Estado
 
-- La lógica de las cuatro etapas está escrita y sus 28 escenarios pasan, con las APIs de Google simuladas.
+- La lógica de las cuatro etapas está escrita y sus 31 escenarios pasan, con las APIs de Google simuladas.
 - Las llamadas a Merchant API (`_upload_product`, `_get_status`) son reales y se probaron contra una cuenta de prueba de Merchant Center ([`MERCHANT_SETUP.md`](MERCHANT_SETUP.md)).
-- Las llamadas a Google Ads API no están implementadas: los métodos que las harían (`_find_campaign`, `_create_campaign`, `_update_campaign`, `pause_product`, `_fetch_metrics`) levantan `NotImplementedError`.
-- La regla de la etapa 4 no se puede validar con cuentas de prueba, porque no muestran anuncios ni devuelven métricas reales ([`requirements.md`](requirements.md)).
+- La etapa 4 encadena las tres anteriores para una prenda: `scripts/publish_from_url.py` recibe la URL de la foto y los datos de la marca, y sube el producto a Merchant Center. Todavía no se corrió contra la cuenta de prueba con los modelos reales.
+- Las campañas de Google Ads quedaron fuera del alcance: crear una campaña y medir sus resultados cuesta dinero ([bitácora del canvas](../canvas.md#bitácora-de-revisiones), 2026-11-11).
 
 ## Cómo se corren los tests
 
 Desde la raíz del repo, sin GPU, sin red y sin credenciales:
 
 ```bash
-python -m unittest discover -s positioner/tests -t .     # los 28 tests
+python -m unittest discover -s positioner/tests -t .     # los 38 tests
 python scripts/spec_report.py                            # los specs con cada escenario tildado
-python scripts/spec_report.py --estricto                 # además, falla si un escenario no tiene test
+python scripts/spec_report.py --estricto               # además, falla si un escenario no tiene test
 ```
 
 `spec_report.py` sale con código 1 si algún escenario falla, así que puede correr en CI.

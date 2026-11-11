@@ -3,6 +3,7 @@ from torch import nn
 from PIL import Image
 from torchvision import transforms
 import numpy as np
+from pathlib import Path
 
 #Copy TinyVGG architecture from https://poloclub.github.io/cnn-explainer/
 class FashionModelV2(nn.Module):
@@ -49,7 +50,9 @@ class FashionModelV2(nn.Module):
     x = self.classifier(x)
     return x
 
-MODEL_PATH = 'deep_learning/torch_state/fashion_model_classifier_tiny_vgg_v2.pth'
+# Relative to this file, so the model loads from any working directory
+# (the API runs from deep-tagger-api/, scripts/publish_from_url.py from the repo root).
+MODEL_PATH = Path(__file__).resolve().parent / 'torch_state' / 'fashion_model_classifier_tiny_vgg_v2.pth'
 CLASS_NAMES = ['T-shirt/top', 'Pants', 'Pullover', 'Dress', 'Coat', 'Sandal', 'Shirt', 'Shoes','Bag', 'Ankle boot']
 torch_classifier_model = FashionModelV2(input_shape=1, hidden_units=10, output_shape=10)
 torch_classifier_model.load_state_dict(torch.load(f=MODEL_PATH, map_location=torch.device('cpu')))

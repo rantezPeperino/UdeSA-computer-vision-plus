@@ -111,5 +111,6 @@ en otra cuenta. Todos usan la service account.
 
 ## Pendientes
 
-- **M4.** Las cuentas de prueba de Merchant Center no se pueden vincular a Google Ads.
-  Para probar campañas va a hacer falta usar la cuenta real.
+- **M4.** Correr `scripts/publish_from_url.py` con los modelos reales contra esta
+  cuenta de prueba. Usa las mismas variables de entorno de arriba, más
+  `ANTHROPIC_API_KEY` para la descripción.
