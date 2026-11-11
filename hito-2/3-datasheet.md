@@ -66,7 +66,7 @@ Respuesta: Los CSV no tienen datos de clientes ni de compradores. Los rostros de
 
 **11. ¿Cómo se consiguió cada dato, y en qué período?**
 
-Respuesta: Las etiquetas las pusieron a mano expertos en moda de Lily AI, con mucha revisión humana en el circuito (*human in the loop*). Los productos se publicaron entre junio y julio de 2025; el dataset original traía esa fecha, pero el extracto no. La fecha de los archivos en el CDN es coherente con eso: el 99,4 % es de 2021 en adelante (EDA, Vigencia, celda T4). Copiamos los CSV del repo del prototipo el 2026-10-20 con `scripts/armar_muestra.py`.
+Respuesta: Las etiquetas las pusieron a mano expertos en moda de Lily AI, con mucha revisión humana en el circuito (*human in the loop*). Los productos se publicaron entre junio y julio de 2025; el dataset original traía esa fecha, pero el extracto no. La fecha de los archivos en el CDN es coherente con eso: el 99,4 % es de 2021 en adelante (EDA, Vigencia, celda T4). Copiamos los CSV del repo del prototipo el 2026-10-20 con `scripts/build_sample.py`.
 
 **12. Si es una muestra, ¿con qué criterio se eligió?**
 

@@ -227,8 +227,8 @@ Para ver los resultados contra los specs, con cada escenario tildado:
 ```bash
 python scripts/spec_report.py                                       # todas las etapas
 python scripts/spec_report.py upgrade/specs/merchant-feed/spec.md   # una etapa
-python scripts/spec_report.py --sin-pasos                           # sin los pasos WHEN/THEN
-python scripts/spec_report.py --estricto                          # falla también si un escenario no tiene test
+python scripts/spec_report.py --no-steps                           # sin los pasos WHEN/THEN
+python scripts/spec_report.py --strict                            # falla también si un escenario no tiene test
 ```
 
 Sale con código 1 si algún escenario falla, así que puede correr en CI.

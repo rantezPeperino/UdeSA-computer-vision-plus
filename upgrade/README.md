@@ -57,7 +57,7 @@ Desde la raíz del repo, sin GPU, sin red y sin credenciales:
 ```bash
 python -m unittest discover -s positioner/tests -t .     # los 38 tests
 python scripts/spec_report.py                            # los specs con cada escenario tildado
-python scripts/spec_report.py --estricto               # además, falla si un escenario no tiene test
+python scripts/spec_report.py --strict                 # además, falla si un escenario no tiene test
 ```
 
 `spec_report.py` sale con código 1 si algún escenario falla, así que puede correr en CI.
@@ -65,4 +65,4 @@ python scripts/spec_report.py --estricto               # además, falla si un es
 ## Convenciones de los specs
 
 - Siguen el formato OpenSpec, en inglés: requisitos con `SHALL` (estilo EARS), todos como `## ADDED Requirements`.
-- Cada escenario es un bloque `#### Scenario:` con sus pasos `WHEN`/`IF`/`THEN` y una línea `- **TEST** \`nombre_del_test\`` con el test que lo cubre. Un escenario sin esa línea aparece como `sin test` en el reporte.
+- Cada escenario es un bloque `#### Scenario:` con sus pasos `WHEN`/`IF`/`THEN` y una línea `- **TEST** \`nombre_del_test\`` con el test que lo cubre. Un escenario sin esa línea aparece como `no test` en el reporte.
