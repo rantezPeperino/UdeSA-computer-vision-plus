@@ -8,6 +8,11 @@ Primero lo probamos para US, con el feed viejo en dólares. Cuando el feed pasó
 Argentina (precios en ARS, títulos en castellano), sumamos una fuente de datos y un
 servicio de envíos para AR. Ahora `MerchantClient` usa `es` / `AR` por defecto.
 
+El 11 de noviembre corrimos la etapa 4 contra la misma cuenta: a partir de la URL de
+una foto, el pipeline la atribuyó con los modelos reales y subió el producto, y Google
+lo aprobó. Los pasos están en
+[Cómo correr la etapa 4 con un producto real](#cómo-correr-la-etapa-4-con-un-producto-real).
+
 ## Cuentas e IDs
 
 | Qué | Valor |
@@ -20,6 +25,7 @@ servicio de envíos para AR. Ahora `MerchantClient` usa `es` / `AR` por defecto.
 | Fuente de datos de la primera prueba | `10789365395` (idioma `en`, país `US`) |
 | Producto para Argentina | `11885326`, "ElegantLine Pantalón unisex de poliéster verde talle L", 135444.24 ARS: **aprobado** |
 | Producto de la primera prueba | `11888123`, "TrendWear Women's Navy Blue Denim Regular Fit Pant Trousers", en USD: **aprobado** |
+| Producto de la etapa 4 (desde la URL de la foto) | `11876597`, "ElegantLine female Pants Loose-Fit-Pant navy blue XXL", 30029.69 ARS: **aprobado** |
 
 La clave JSON de la service account **no está en el repo**. Cada uno la guarda en
 `~/.config/google/` con permisos `600`, y nunca se commitea.
@@ -88,6 +94,114 @@ statuses = client.get_product_statuses([p.id for p in products])
 Google tarda entre 30 segundos y unos minutos en procesar cada producto. Mientras
 tanto, `get_product_statuses` devuelve `pending`.
 
+## Cómo correr la etapa 4 con un producto real
+
+`scripts/publish_from_url.py` toma la URL de la foto y los datos de la marca, baja
+la imagen, la atribuye con los modelos del prototipo, genera la descripción con un
+modelo de lenguaje, valida la ficha, la sube a la cuenta de prueba y espera el
+veredicto de Google. Todos los comandos se corren desde la raíz del repo, con el
+`.venv` activado.
+
+### 1. Instalar las dependencias de los modelos (una sola vez)
+
+```bash
+pip install torch==2.11.0 torchvision==0.26.0 --index-url https://download.pytorch.org/whl/cpu
+pip install transformers==5.12.0 scikit-learn==1.8.0 openai==2.41.1 anthropic==0.96.0
+```
+
+Son las versiones de `deep-tagger-api/requirements.txt`. La primera línea instala
+`torch` para CPU: no hace falta GPU, y así se evitan los ~2 GB de CUDA. En la primera
+corrida, `transformers` baja el modelo BLIP de Hugging Face, así que tarda más.
+
+### 2. Configurar las credenciales
+
+Las de Merchant Center, como en la sección anterior:
+
+```bash
+export GOOGLE_SERVICE_ACCOUNT_PATH=~/.config/google/<clave>.json
+export MERCHANT_ID=5897870917
+export MERCHANT_DATA_SOURCE_ID=10789583598
+```
+
+Y la del modelo que genera la descripción: OpenAI o Claude. Nosotros usamos OpenAI,
+con la clave guardada en `openai_key.txt` en la raíz del repo. Ese archivo está en
+`.gitignore` y **nunca se commitea**; conviene dejarlo con permisos `600`. Se carga
+así, sin mostrarla en la terminal:
+
+```bash
+export OPENAI_API_KEY="$(tr -d '[:space:]' < openai_key.txt)"
+export LLM_PROVIDER=openai      # o anthropic, con ANTHROPIC_API_KEY
+```
+
+Sin una clave el script no sube nada, porque la descripción saldría como texto de
+relleno. Con `--dry-run` corre igual.
+
+### 3. Elegir un producto
+
+Los datos de la marca salen del feed sintético
+([`data/pants_google_500.csv`](data/README.md), o el de calzado o tops). Para ver una
+fila:
+
+```bash
+python -c "import csv; print(next(csv.DictReader(open('upgrade/data/pants_google_500.csv'))))"
+```
+
+| Columna del CSV | Argumento del script |
+|---|---|
+| `image_url` | primer argumento (la URL de la foto) |
+| `id` | `--id` |
+| `brand` | `--brand` |
+| `price` | `--price` |
+| `link` | `--link` |
+| `size` | `--size` |
+| `gender` | `--gender` |
+| `color`, `material`, `pattern`, `gtin` | `--color`, `--material`, `--pattern`, `--gtin` (opcionales) |
+
+`title` y `description` no se usan: el pipeline los genera a partir de la foto.
+Subir un `id` que ya está en la cuenta (por ejemplo, `11876597` o `11885326`)
+reemplaza ese producto.
+
+### 4. Probar sin subir
+
+```bash
+python scripts/publish_from_url.py \
+  "https://asset1.ruecdn.com/images/product/151188/1511885746_RLLDTH_1.jpg" \
+  --id 11876597 --brand ElegantLine --price "30029.69 ARS" \
+  --link "https://matlock.github.io/?category=pants&product=11876597" \
+  --size XXL --gender female --color "navy blue" --material Polyester --pattern Striped \
+  --dry-run
+```
+
+Muestra los atributos inferidos, el título y la descripción, y dice si la ficha pasa
+la validación. No necesita las credenciales de Merchant Center.
+
+### 5. Subir
+
+El mismo comando, sin `--dry-run`. Después de subir, el script consulta el estado
+cada 15 segundos durante 5 minutos como máximo (se cambia con `--wait SECONDS`;
+`--wait 0` no espera). Sale con código 0 si el producto quedó subido o aprobado,
+1 si una etapa falló o Google lo rechazó, y 2 si falta una credencial.
+
+### 6. Si quedó en `pending`
+
+Un producto nuevo suele quedar un rato con `image_link_pending_crawl`, mientras Google
+baja la imagen. Con el `11876597` tardó más de los 5 minutos del script. Para
+consultarlo más tarde:
+
+```bash
+python -c "
+from positioner.publishing.credential_loader import load_credentials
+from positioner.publishing.environment import get_environment
+from positioner.publishing.merchant_client import MerchantClient
+print(MerchantClient(load_credentials(), get_environment()).get_product_statuses(['11876597']))"
+```
+
+El producto también se ve en Merchant Center, como se explica en
+[Cómo ver el producto en Merchant Center](#cómo-ver-el-producto-en-merchant-center).
+Ahí aparecen el título, la descripción, la categoría de Google y los datos de la
+marca. El calce, los bolsillos y la temporada que infieren los modelos no tienen campo
+propio en Merchant Center: solo aparecen dentro del título y la descripción.
+
 ## Pasos de configuración que hicimos por API
 
 Se hacen una sola vez y ya están hechos. Los dejamos anotados por si hay que repetirlos
@@ -111,6 +225,7 @@ en otra cuenta. Todos usan la service account.
 
 ## Pendientes
 
-- **M4.** Correr `scripts/publish_from_url.py` con los modelos reales contra esta
-  cuenta de prueba. Usa las mismas variables de entorno de arriba, más
-  `OPENAI_API_KEY` o `ANTHROPIC_API_KEY` para la descripción.
+- **Idioma de la ficha.** En la etapa 4, el título y la descripción salen en inglés
+  ("female Pants", "Effortless sophistication…"), aunque el producto se publica en la
+  fuente `es` / `AR`. Hay que pedirle la descripción en castellano al modelo de
+  lenguaje y traducir las partes del título.

@@ -47,7 +47,7 @@ Ningún modelo del prototipo predice género, material ni estampa, así que el p
 
 - La lógica de las cuatro etapas está escrita y sus 31 escenarios pasan, con las APIs de Google simuladas.
 - Las llamadas a Merchant API (`_upload_product`, `_get_status`) son reales y se probaron contra una cuenta de prueba de Merchant Center ([`MERCHANT_SETUP.md`](MERCHANT_SETUP.md)).
-- La etapa 4 encadena las tres anteriores para una prenda: `scripts/publish_from_url.py` recibe la URL de la foto y los datos de la marca, y sube el producto a Merchant Center. Todavía no se corrió contra la cuenta de prueba con los modelos reales.
+- La etapa 4 encadena las tres anteriores para una prenda: `scripts/publish_from_url.py` recibe la URL de la foto y los datos de la marca, y sube el producto a Merchant Center. Se corrió con los modelos reales contra la cuenta de prueba el 2026-11-11: el producto `11876597` quedó aprobado. Paso a paso en [`MERCHANT_SETUP.md`](MERCHANT_SETUP.md#cómo-correr-la-etapa-4-con-un-producto-real).
 - Las campañas de Google Ads quedaron fuera del alcance: crear una campaña y medir sus resultados cuesta dinero ([bitácora del canvas](../canvas.md#bitácora-de-revisiones), 2026-11-11).
 
 ## Cómo se corren los tests

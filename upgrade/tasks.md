@@ -43,7 +43,7 @@ Reemplaza a la etapa de campañas, que quedó fuera de alcance porque crear una 
 - [x] 4.6 Esperar el veredicto de Google, con tiempo límite
 - [x] 4.7 Tests con los modelos y el cliente simulados (ver `specs/url-to-merchant/spec.md`)
 - [x] 4.8 Script de línea de comandos (`scripts/publish_from_url.py`)
-- [ ] 4.9 Correr el script con los modelos reales contra la cuenta de prueba de Merchant Center
+- [x] 4.9 Correr el script con los modelos reales contra la cuenta de prueba de Merchant Center (2026-11-11: producto `11876597`, aprobado)
 
 ## Transversales
 

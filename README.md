@@ -54,7 +54,7 @@ Foto + datos de la marca
 └──────────────────────────────────┘
 ```
 
-**Estado:** la lógica de las cuatro etapas está escrita y sus 31 escenarios pasan con las APIs de Google simuladas. Las llamadas a Merchant API (etapa 3) ya son reales y se probaron contra una cuenta de prueba ([`upgrade/MERCHANT_SETUP.md`](upgrade/MERCHANT_SETUP.md)). La etapa 4 encadena las tres para una foto; todavía no se corrió con los modelos reales contra la cuenta de prueba. Las campañas de Google Ads quedaron fuera de alcance porque cuestan dinero ([`upgrade/README.md`](upgrade/README.md), sección Estado).
+**Estado:** la lógica de las cuatro etapas está escrita y sus 31 escenarios pasan con las APIs de Google simuladas. Las llamadas a Merchant API (etapa 3) ya son reales y se probaron contra una cuenta de prueba ([`upgrade/MERCHANT_SETUP.md`](upgrade/MERCHANT_SETUP.md)). La etapa 4 encadena las tres para una foto, y ya se corrió con los modelos reales contra la cuenta de prueba: el producto `11876597` quedó aprobado. Las campañas de Google Ads quedaron fuera de alcance porque cuestan dinero ([`upgrade/README.md`](upgrade/README.md), sección Estado).
 
 ---
 
@@ -201,6 +201,8 @@ from positioner.automation.pipeline import run_pipeline, wait_for_status
 result = run_pipeline(image_url, business_row, client=client)   # result.stage: uploaded, invalid, ...
 status = wait_for_status(client, result.product_id)             # approved / disapproved / pending
 ```
+
+Paso a paso para correrlo con un producto real (dependencias, credenciales, cómo sacar los datos de una fila del feed sintético y cómo consultar el estado después): [`upgrade/MERCHANT_SETUP.md`](upgrade/MERCHANT_SETUP.md#cómo-correr-la-etapa-4-con-un-producto-real).
 
 Las campañas de Google Ads quedaron fuera de alcance: crear una campaña y medir sus resultados cuesta dinero.
 
