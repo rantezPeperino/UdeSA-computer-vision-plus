@@ -1,1 +1,1 @@
-# positioner.automation — Milestone 4: from an image URL to Merchant Center.
+# positioner.automation — Milestone 4: from a CSV of garments to Merchant Center.

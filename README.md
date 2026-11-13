@@ -49,12 +49,12 @@ Foto + datos de la marca
                  ▼
 ┌──────────────────────────────────┐
 │  4 · Automatización              │  positioner/automation/
-│  de la URL de la foto a Merchant │  scripts/publish_from_url.py
+│  de un CSV de prendas a Merchant │  scripts/publish_from_csv.py
 │  Center, de punta a punta        │
 └──────────────────────────────────┘
 ```
 
-**Estado:** la lógica de las cuatro etapas está escrita y sus 31 escenarios pasan con las APIs de Google simuladas. Las llamadas a Merchant API (etapa 3) ya son reales y se probaron contra una cuenta de prueba ([`upgrade/MERCHANT_SETUP.md`](upgrade/MERCHANT_SETUP.md)). La etapa 4 encadena las tres para una foto, y ya se corrió con los modelos reales contra la cuenta de prueba: el producto `11876597` quedó aprobado. Las campañas de Google Ads quedaron fuera de alcance porque cuestan dinero ([`upgrade/README.md`](upgrade/README.md), sección Estado).
+**Estado:** la lógica de las cuatro etapas está escrita y sus 36 escenarios pasan con las APIs de Google simuladas. Las llamadas a Merchant API (etapa 3) ya son reales y se probaron contra una cuenta de prueba ([`upgrade/MERCHANT_SETUP.md`](upgrade/MERCHANT_SETUP.md)). La etapa 4 encadena las tres para cada prenda de un CSV. Con una sola foto ya se corrió con los modelos reales contra la cuenta de prueba: el producto `11876597` quedó aprobado. Las campañas de Google Ads quedaron fuera de alcance porque cuestan dinero ([`upgrade/README.md`](upgrade/README.md), sección Estado).
 
 ---
 
@@ -74,7 +74,7 @@ positioner/             # Pipeline de posicionamiento en Google
   feed/                 #   2: esquema de Merchant Center y validación
   publishing/           #   3: publicación en Merchant Center
   automation/           #   4: de la URL de la foto a Merchant Center
-  tests/                #   38 tests (sin GPU, sin red, sin credenciales)
+  tests/                #   43 tests (sin GPU, sin red, sin credenciales)
 upgrade/                # Propuesta, requisitos, tareas, specs y feed sintético del pipeline
 ```
 
@@ -179,30 +179,27 @@ statuses = client.get_product_statuses(ids)      # approved / disapproved / pend
 
 Probado de punta a punta contra una cuenta de prueba de Merchant Center: las cuentas, la configuración y dónde ver los productos están en [`upgrade/MERCHANT_SETUP.md`](upgrade/MERCHANT_SETUP.md).
 
-### 4 · Automatización: de la URL a Merchant Center
+### 4 · Automatización: del CSV a Merchant Center
 
-Encadena las tres etapas para una prenda. Dada la URL de la foto y los datos de la marca: revisa los datos obligatorios, descarga la imagen, la atribuye con los modelos del prototipo, valida la ficha, la sube a Merchant Center y espera a que Google la apruebe o la rechace. Se corta en la primera etapa que falla. La misma URL da siempre el mismo id de producto, así que correrlo dos veces actualiza el producto en vez de duplicarlo.
+Encadena las tres etapas para cada prenda de un CSV local. Cada fila trae la URL de la foto y los datos de la marca (`image_url`, `brand`, `price`, `link`, `size`, `gender` y opcionales). Por cada fila: revisa los datos obligatorios, descarga la imagen, la atribuye con los modelos del prototipo, valida la ficha y la sube a Merchant Center. Una fila se corta en la primera etapa que falla y las demás siguen. Al final espera a que Google apruebe o rechace los productos subidos y deja el resultado de cada fila en `<entrada>_results.csv`. Si una fila no trae `id`, sale de la URL de la foto, así que correr el CSV dos veces actualiza los productos en vez de duplicarlos.
 
 Necesita las dependencias de `deep-tagger-api`, las variables de entorno de la etapa 3 y una clave para generar la descripción: `OPENAI_API_KEY` o `ANTHROPIC_API_KEY` (con `LLM_PROVIDER=openai` o `anthropic` se elige uno si están las dos):
 
 ```bash
-python scripts/publish_from_url.py "https://.../foto.jpg" \
-    --brand StyleCo --price "45999.00 ARS" \
-    --link "https://matlock.github.io/?product=123" \
-    --size M --gender female
+python scripts/publish_from_csv.py productos.csv
 
-# Arma y valida la ficha sin subirla (no hacen falta credenciales):
-python scripts/publish_from_url.py "https://.../foto.jpg" ... --dry-run
+# Arma y valida las fichas sin subirlas (no hacen falta credenciales), solo las primeras 3 filas:
+python scripts/publish_from_csv.py productos.csv --dry-run --limit 3
 ```
 
 ```python
-from positioner.automation.pipeline import run_pipeline, wait_for_status
+from positioner.automation.batch import read_rows, run_batch, wait_for_statuses
 
-result = run_pipeline(image_url, business_row, client=client)   # result.stage: uploaded, invalid, ...
-status = wait_for_status(client, result.product_id)             # approved / disapproved / pending
+results = run_batch(read_rows("productos.csv"), client=client)  # r.stage: uploaded, invalid, ...
+statuses = wait_for_statuses(client, [r.product_id for r in results if r.stage == "uploaded"])
 ```
 
-Paso a paso para correrlo con un producto real (dependencias, credenciales, cómo sacar los datos de una fila del feed sintético y cómo consultar el estado después): [`upgrade/MERCHANT_SETUP.md`](upgrade/MERCHANT_SETUP.md#cómo-correr-la-etapa-4-con-un-producto-real).
+Paso a paso para correrlo con productos reales (dependencias, credenciales, columnas del CSV y cómo consultar el estado después): [`upgrade/MERCHANT_SETUP.md`](upgrade/MERCHANT_SETUP.md#cómo-correr-la-etapa-4).
 
 Las campañas de Google Ads quedaron fuera de alcance: crear una campaña y medir sus resultados cuesta dinero.
 
@@ -214,12 +211,12 @@ Sin GPU, sin red y sin credenciales: todas las llamadas externas están simulada
 
 ```bash
 # Desde la raíz del repo
-python -m unittest discover -s positioner/tests -t . -v   # los 38 tests
+python -m unittest discover -s positioner/tests -t . -v   # los 43 tests
 
 python -m unittest positioner.tests.test_enrichment -v     # 1 · 6 tests
 python -m unittest positioner.tests.test_feed -v           # 2 · 9 tests
 python -m unittest positioner.tests.test_publishing -v     # 3 · 13 tests
-python -m unittest positioner.tests.test_automation -v     # 4 · 10 tests
+python -m unittest positioner.tests.test_automation -v     # 4 · 15 tests
 ```
 
 Para ver los resultados contra los specs, con cada escenario tildado:

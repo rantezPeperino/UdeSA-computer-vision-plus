@@ -1,22 +1,32 @@
-"""Milestone 4 in batch: every garment of a CSV, from its photo URL to Merchant Center.
+"""Milestone 4: from a CSV of garments to products in Google Merchant Center.
 
-For each row of the CSV, the same steps as publish_from_url.py: check the brand
-fields, download and attribute the photo, build and validate the Merchant Center
-row, and upload it. A row that fails does not stop the others. At the end it
-waits for Google's verdict on the uploaded products and writes one result line
-per row to a results CSV.
+Takes the path of a local CSV with one garment per row: the public URL of its
+photo and the fields only the brand knows. For each row:
+
+  1. checks that the brand's required fields are present,
+  2. downloads the image and attributes it with the prototype's models (stage 1),
+  3. builds the Merchant Center row and validates it (stage 2),
+  4. uploads it to Merchant Center (stage 3).
+
+A row stops at the first stage that fails, and the next rows go on. At the end
+it waits for Google to approve or disapprove the uploaded products and writes
+one result line per row to a results CSV.
 
 CSV columns:
     image_url (or url)         public URL of the garment photo
     brand, price, link         price with currency, e.g. "45999.00 ARS"
     size, gender               required by Google for apparel; no model infers them
-    id                         optional; derived from the URL when empty
+    id                         optional; derived from the URL when empty, so the
+                               same photo always updates the same product
     color, material, pattern, gtin, availability, condition, age_group  optional
 The synthetic feeds in upgrade/data/ already have this shape.
 
-Same requirements as publish_from_url.py: the deep-tagger-api dependencies and,
-to upload, the Merchant Center variables in upgrade/MERCHANT_SETUP.md plus an
-LLM key (OPENAI_API_KEY or ANTHROPIC_API_KEY).
+Needs the deep-tagger-api dependencies (torch, transformers, etc.) and, to upload,
+the environment variables in upgrade/MERCHANT_SETUP.md:
+    GOOGLE_SERVICE_ACCOUNT_PATH, MERCHANT_ID, MERCHANT_DATA_SOURCE_ID
+plus a key to generate the description: OPENAI_API_KEY or ANTHROPIC_API_KEY
+(LLM_PROVIDER=openai|anthropic picks one when both are set; see
+deep-tagger-api/llm/description_client.py).
 
 Usage (from the repo root):
     python scripts/publish_from_csv.py products.csv --dry-run --limit 3   # uploads nothing
@@ -38,9 +48,10 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "deep-tagger-api"))
 
 from positioner.automation.batch import read_rows, run_batch, wait_for_statuses  # noqa: E402
-from positioner.automation.connect import SetupError, connect  # noqa: E402
 from positioner.automation.pipeline import DRY_RUN, UPLOADED  # noqa: E402
-from positioner.publishing.credential_loader import CredentialError  # noqa: E402
+from positioner.publishing.credential_loader import CredentialError, load_credentials  # noqa: E402
+from positioner.publishing.environment import get_environment  # noqa: E402
+from positioner.publishing.merchant_client import MerchantClient  # noqa: E402
 
 RESULT_COLUMNS = [
     "id", "image_url", "stage", "merchant_status", "reasons",
@@ -48,9 +59,13 @@ RESULT_COLUMNS = [
 ]
 
 
+class SetupError(Exception):
+    """Something the upload needs is not configured; the message says what."""
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("csv", type=Path, help="CSV with one garment per row")
+    parser.add_argument("csv", type=Path, help="local CSV with one garment per row")
     parser.add_argument("--out", type=Path,
                         help="results CSV; default <input>_results.csv next to the input")
     parser.add_argument("--limit", type=int, metavar="N", help="process only the first N rows")
@@ -59,6 +74,33 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--wait", type=int, default=300, metavar="SECONDS",
                         help="how long to wait for Google's verdict (0 to not wait; default 300)")
     return parser.parse_args()
+
+
+def connect() -> MerchantClient:
+    """Check the LLM key and build the Merchant client, printing what is used."""
+    from llm import description_client  # from deep-tagger-api
+    try:
+        provider = description_client.provider()
+    except ValueError as error:
+        raise SetupError(f"LLM_PROVIDER: {error}") from error
+    if provider is None:
+        raise SetupError(
+            "Missing the language model key (OPENAI_API_KEY or ANTHROPIC_API_KEY, "
+            "the one matching LLM_PROVIDER if it is set): without it the description "
+            "is placeholder text and would be uploaded as such to Merchant Center. "
+            "Set it or run with --dry-run."
+        )
+    print(f"Description generated with: {provider}")
+
+    try:
+        credentials = load_credentials()
+    except CredentialError as error:
+        raise SetupError(
+            f"Merchant Center credentials: {error} (see upgrade/MERCHANT_SETUP.md)"
+        ) from error
+    environment = get_environment()
+    print(f"Merchant Center: account {credentials.merchant_id}, environment {environment.value}")
+    return MerchantClient(credentials, environment)
 
 
 def result_line(result, status=None) -> dict:
@@ -99,11 +141,13 @@ def main() -> int:
         rows = rows[:args.limit]
     out = args.out or args.csv.with_name(f"{args.csv.stem}_results.csv")
 
-    try:
-        client = connect(args.dry_run)
-    except SetupError as error:
-        print(error, file=sys.stderr)
-        return 2
+    client = None
+    if not args.dry_run:
+        try:
+            client = connect()
+        except SetupError as error:
+            print(error, file=sys.stderr)
+            return 2
 
     print(f"{len(rows)} products from {args.csv}")
     print("Loading the models and processing the images…")
@@ -134,6 +178,8 @@ def main() -> int:
             print(f"Could not read the statuses: {error}. "
                   "They show up in Merchant Center → Products.", file=sys.stderr)
         write_results(out, results, statuses)
+    elif uploaded:
+        print("\nNot waiting for Google's verdict. It shows up in Merchant Center → Products.")
 
     print("\nSummary:")
     for stage, count in Counter(r.stage for r in results).most_common():

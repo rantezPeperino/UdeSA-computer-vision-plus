@@ -10,8 +10,9 @@ servicio de envíos para AR. Ahora `MerchantClient` usa `es` / `AR` por defecto.
 
 El 11 de noviembre corrimos la etapa 4 contra la misma cuenta: a partir de la URL de
 una foto, el pipeline la atribuyó con los modelos reales y subió el producto, y Google
-lo aprobó. Los pasos están en
-[Cómo correr la etapa 4 con un producto real](#cómo-correr-la-etapa-4-con-un-producto-real).
+lo aprobó. Esa corrida usó el script anterior, de una sola URL; hoy la entrada es un
+CSV con una prenda por fila. Los pasos están en
+[Cómo correr la etapa 4](#cómo-correr-la-etapa-4).
 
 ## Cuentas e IDs
 
@@ -94,13 +95,13 @@ statuses = client.get_product_statuses([p.id for p in products])
 Google tarda entre 30 segundos y unos minutos en procesar cada producto. Mientras
 tanto, `get_product_statuses` devuelve `pending`.
 
-## Cómo correr la etapa 4 con un producto real
+## Cómo correr la etapa 4
 
-`scripts/publish_from_url.py` toma la URL de la foto y los datos de la marca, baja
-la imagen, la atribuye con los modelos del prototipo, genera la descripción con un
-modelo de lenguaje, valida la ficha, la sube a la cuenta de prueba y espera el
-veredicto de Google. Todos los comandos se corren desde la raíz del repo, con el
-`.venv` activado.
+`scripts/publish_from_csv.py` toma un CSV local con una prenda por fila: la URL de la
+foto y los datos de la marca. Para cada fila baja la imagen, la atribuye con los
+modelos del prototipo, genera la descripción con un modelo de lenguaje, valida la
+ficha y la sube a la cuenta de prueba. Al final espera el veredicto de Google. Todos
+los comandos se corren desde la raíz del repo, con el `.venv` activado.
 
 ### 1. Instalar las dependencias de los modelos (una sola vez)
 
@@ -136,57 +137,58 @@ export LLM_PROVIDER=openai      # o anthropic, con ANTHROPIC_API_KEY
 Sin una clave el script no sube nada, porque la descripción saldría como texto de
 relleno. Con `--dry-run` corre igual.
 
-### 3. Elegir un producto
+### 3. Armar el CSV
 
-Los datos de la marca salen del feed sintético
-([`data/pants_google_500.csv`](data/README.md), o el de calzado o tops). Para ver una
-fila:
+Una prenda por fila, con estas columnas:
 
-```bash
-python -c "import csv; print(next(csv.DictReader(open('upgrade/data/pants_google_500.csv'))))"
-```
-
-| Columna del CSV | Argumento del script |
+| Columna | |
 |---|---|
-| `image_url` | primer argumento (la URL de la foto) |
-| `id` | `--id` |
-| `brand` | `--brand` |
-| `price` | `--price` |
-| `link` | `--link` |
-| `size` | `--size` |
-| `gender` | `--gender` |
-| `color`, `material`, `pattern`, `gtin` | `--color`, `--material`, `--pattern`, `--gtin` (opcionales) |
+| `image_url` (o `url`) | URL pública (http/https) de la foto |
+| `brand`, `price`, `link` | el precio con moneda, por ejemplo `45999.00 ARS`; el link, del dominio del sitio de la cuenta |
+| `size`, `gender` | Google los exige para ropa y ningún modelo los infiere |
+| `id` | opcional; si está vacío, sale de la URL de la foto |
+| `color`, `material`, `pattern`, `gtin`, `availability`, `condition`, `age_group` | opcionales; `availability`, `condition` y `age_group` valen `in_stock`, `new` y `adult` si están vacías |
 
-`title` y `description` no se usan: el pipeline los genera a partir de la foto.
+Los feeds sintéticos de `upgrade/data/` ya tienen esa forma. El resto de las columnas
+(`title`, `description`, etc.) se ignora: el pipeline las genera desde la foto. Si al
+CSV le falta una columna obligatoria o tiene dos filas con el mismo `id`, el script
+corta antes de cargar los modelos.
+
 Subir un `id` que ya está en la cuenta (por ejemplo, `11876597` o `11885326`)
-reemplaza ese producto.
+reemplaza ese producto. Lo mismo pasa con una fila sin `id` que repite la URL de una
+foto ya subida.
 
 ### 4. Probar sin subir
 
 ```bash
-python scripts/publish_from_url.py \
-  "https://asset1.ruecdn.com/images/product/151188/1511885746_RLLDTH_1.jpg" \
-  --id 11876597 --brand ElegantLine --price "30029.69 ARS" \
-  --link "https://matlock.github.io/?category=pants&product=11876597" \
-  --size XXL --gender female --color "navy blue" --material Polyester --pattern Striped \
-  --dry-run
+python scripts/publish_from_csv.py upgrade/data/pants_google_500.csv --dry-run --limit 3
 ```
 
-Muestra los atributos inferidos, el título y la descripción, y dice si la ficha pasa
-la validación. No necesita las credenciales de Merchant Center.
+`--limit N` procesa solo las primeras N filas. Por cada fila dice en qué etapa
+terminó, y deja el título, la categoría y la descripción generados en el archivo de
+resultados (paso 5). No necesita las credenciales de Merchant Center.
 
 ### 5. Subir
 
-El mismo comando, sin `--dry-run`. Después de subir, el script consulta el estado
-cada 15 segundos durante 5 minutos como máximo (se cambia con `--wait SECONDS`;
-`--wait 0` no espera). Sale con código 0 si el producto quedó subido o aprobado,
-1 si una etapa falló o Google lo rechazó, y 2 si falta una credencial.
+El mismo comando, sin `--dry-run`. Una fila que falla (foto que no baja, ficha
+inválida, error del modelo de lenguaje) no frena las demás.
+
+Después de subir, el script consulta el estado de los productos subidos cada 15
+segundos durante 5 minutos como máximo (se cambia con `--wait SECONDS`; `--wait 0` no
+espera).
+
+Escribe una línea por fila en `<entrada>_results.csv`, junto al CSV de entrada (se
+cambia con `--out`): etapa en la que terminó, estado en Merchant Center, motivos, y el
+título, la categoría y la descripción generados. Si se corta con Ctrl-C, guarda las
+filas ya procesadas.
+
+Sale con código 0 si todas las filas se subieron y ninguna fue rechazada, 1 si alguna
+falló o fue rechazada, y 2 si el CSV es inválido o falta una credencial.
 
 ### 6. Si quedó en `pending`
 
 Un producto nuevo suele quedar un rato con `image_link_pending_crawl`, mientras Google
-baja la imagen. Con el `11876597` tardó más de los 5 minutos del script. Para
-consultarlo más tarde:
+baja la imagen. Con el `11876597` tardó más de 5 minutos. Para consultarlo más tarde:
 
 ```bash
 python -c "
@@ -198,46 +200,6 @@ print(MerchantClient(load_credentials(), get_environment()).get_product_statuses
 
 El producto también se ve en Merchant Center, como se explica en
 [Cómo ver el producto en Merchant Center](#cómo-ver-el-producto-en-merchant-center).
-
-## Cómo correr la etapa 4 con un CSV
-
-`scripts/publish_from_csv.py` hace lo mismo que `publish_from_url.py` para cada fila
-de un CSV. Necesita las mismas dependencias y credenciales (pasos 1 y 2 de la
-sección anterior).
-
-El CSV lleva una prenda por fila, con estas columnas:
-
-| Columna | |
-|---|---|
-| `image_url` (o `url`) | URL pública de la foto |
-| `brand`, `price`, `link` | el precio con moneda, por ejemplo `45999.00 ARS` |
-| `size`, `gender` | Google los exige para ropa y ningún modelo los infiere |
-| `id` | opcional; si está vacío, sale de la URL de la foto |
-| `color`, `material`, `pattern`, `gtin`, `availability`, `condition`, `age_group` | opcionales |
-
-Los feeds sintéticos de `upgrade/data/` ya tienen esa forma. El resto de las columnas
-(`title`, `description`, etc.) se ignora: el pipeline las genera desde la foto.
-
-```bash
-# Probar sin subir, con las primeras 3 filas
-python scripts/publish_from_csv.py upgrade/data/pants_google_500.csv --dry-run --limit 3
-
-# Subir
-python scripts/publish_from_csv.py upgrade/data/pants_google_500.csv --limit 3
-```
-
-- Si al CSV le falta una columna obligatoria o tiene dos filas con el mismo `id`,
-  corta antes de cargar los modelos.
-- Una fila que falla (foto que no baja, ficha inválida, error del modelo de lenguaje)
-  no frena las demás.
-- Al terminar de subir, espera el veredicto de Google de todos los productos
-  subidos (`--wait SECONDS`, 300 por defecto; `--wait 0` no espera).
-- Escribe una línea por fila en `<entrada>_results.csv`, junto al CSV de entrada
-  (se cambia con `--out`): etapa en la que terminó, estado en Merchant Center,
-  motivos, y el título, la categoría y la descripción generados. Si se corta con
-  Ctrl-C, guarda las filas ya procesadas.
-- Sale con código 0 si todas las filas se subieron y ninguna fue rechazada, 1 si
-  alguna falló o fue rechazada, y 2 si el CSV es inválido o falta una credencial.
 Ahí aparecen el título, la descripción, la categoría de Google y los datos de la
 marca. El calce, los bolsillos y la temporada que infieren los modelos no tienen campo
 propio en Merchant Center: solo aparecen dentro del título y la descripción.

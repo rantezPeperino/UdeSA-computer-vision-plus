@@ -1,4 +1,4 @@
-"""Tests for positioner.automation (Milestone 4 — URL to Merchant Center).
+"""Tests for positioner.automation (Milestone 4 — CSV to Merchant Center).
 
 Milestone 1 is replaced by a fake `enrich` function, so no model, GPU or image
 download runs. The Merchant client is real, with `_upload_product` and
@@ -35,7 +35,6 @@ from positioner.automation.pipeline import (  # noqa: E402
     UPLOADED,
     product_id_from_url,
     run_pipeline,
-    wait_for_status,
 )
 from positioner.enrichment.models import EnrichedProduct  # noqa: E402
 from positioner.publishing.credential_loader import Credentials  # noqa: E402
@@ -235,52 +234,6 @@ class AutomationPipelineTests(unittest.TestCase):
         upload.assert_not_called()
         get_status.assert_not_called()
 
-    # ------------------------------------------------------------------ #
-    #  test_wait_for_status_returns_verdict                               #
-    # ------------------------------------------------------------------ #
-    def test_wait_for_status_returns_verdict(self) -> None:
-        """Polling continues through 'pending' and returns 'approved'."""
-        client = _client()
-        statuses = [
-            ProductStatus(product_id='p-1', status='pending'),
-            ProductStatus(product_id='p-1', status='pending'),
-            ProductStatus(product_id='p-1', status='approved'),
-        ]
-        sleep = MagicMock()
-
-        with patch.object(client, '_get_status', side_effect=statuses):
-            status = wait_for_status(
-                client, 'p-1', timeout_s=300, interval_s=15,
-                sleep=sleep, clock=lambda: 0,
-            )
-
-        self.assertEqual(status.status, 'approved')
-        self.assertEqual(sleep.call_count, 2)
-
-    # ------------------------------------------------------------------ #
-    #  test_wait_for_status_gives_up_after_timeout                        #
-    # ------------------------------------------------------------------ #
-    def test_wait_for_status_gives_up_after_timeout(self) -> None:
-        """A product still pending at the time limit is returned as 'pending'."""
-        client = _client()
-        now = [0.0]
-
-        def sleep(seconds: float) -> None:
-            now[0] += seconds
-
-        with patch.object(
-            client, '_get_status',
-            return_value=ProductStatus(product_id='p-1', status='pending'),
-        ) as get_status:
-            status = wait_for_status(
-                client, 'p-1', timeout_s=60, interval_s=15,
-                sleep=sleep, clock=lambda: now[0],
-            )
-
-        self.assertEqual(status.status, 'pending')
-        # Polls at t = 0, 15, 30, 45 and 60; the next one would pass the limit.
-        self.assertEqual(get_status.call_count, 5)
-
 
 def _write_csv(text: str) -> str:
     """Write a CSV to a temporary file and return its path."""
@@ -427,6 +380,30 @@ class BatchTests(unittest.TestCase):
         self.assertEqual(statuses['p-1'].status, 'approved')
         self.assertEqual(statuses['p-2'].status, 'disapproved')
         self.assertEqual(calls.call_count, 3)
+
+    # ------------------------------------------------------------------ #
+    #  test_wait_for_statuses_gives_up_after_timeout                      #
+    # ------------------------------------------------------------------ #
+    def test_wait_for_statuses_gives_up_after_timeout(self) -> None:
+        """A product still pending at the time limit is returned as 'pending'."""
+        client = _client()
+        now = [0.0]
+
+        def sleep(seconds: float) -> None:
+            now[0] += seconds
+
+        with patch.object(
+            client, '_get_status',
+            return_value=ProductStatus(product_id='p-1', status='pending'),
+        ) as get_status:
+            statuses = wait_for_statuses(
+                client, ['p-1'], timeout_s=60, interval_s=15,
+                sleep=sleep, clock=lambda: now[0],
+            )
+
+        self.assertEqual(statuses['p-1'].status, 'pending')
+        # Polls at t = 0, 15, 30, 45 and 60; the next one would pass the limit.
+        self.assertEqual(get_status.call_count, 5)
 
 
 if __name__ == '__main__':

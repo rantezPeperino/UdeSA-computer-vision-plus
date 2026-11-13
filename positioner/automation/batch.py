@@ -1,6 +1,6 @@
-"""Batch automation: every row of a CSV, from image URL to Merchant Center.
+"""Milestone 4 input: a local CSV of garments, each one to Merchant Center.
 
-Runs the single-garment pipeline (pipeline.run_pipeline) once per row:
+Runs the pipeline of one garment (pipeline.run_pipeline) once per row:
 
     CSV (image URL + brand data per row)
        │  read and check the columns      read_rows
@@ -48,7 +48,7 @@ BRAND_COLUMNS = (
     'pattern', 'gtin', 'availability', 'condition', 'age_group',
 )
 
-# Used when the row leaves them empty; same defaults as publish_from_url.py.
+# Used when the row leaves them empty.
 DEFAULTS = {'availability': 'in_stock', 'condition': 'new', 'age_group': 'adult'}
 
 # Required by the validator for apparel and never inferred from the photo.

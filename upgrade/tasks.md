@@ -31,7 +31,7 @@ Cada etapa se cierra con todos sus escenarios en verde (`python scripts/spec_rep
 - [x] 3.6 Tests con el cliente simulado (ver `specs/merchant-publishing/spec.md`)
 - [x] 3.7 Llamadas reales a la Merchant API (`_upload_product`, `_get_status`)
 
-## Etapa 4 · Automatización: de la URL a Merchant Center
+## Etapa 4 · Automatización: del CSV a Merchant Center
 
 Reemplaza a la etapa de campañas, que quedó fuera de alcance porque crear una campaña y medirla cuesta dinero.
 
@@ -41,10 +41,11 @@ Reemplaza a la etapa de campañas, que quedó fuera de alcance porque crear una 
 - [x] 4.4 Subir con la etapa 3, con un id estable derivado de la URL
 - [x] 4.5 Modo simulación (arma y valida sin subir)
 - [x] 4.6 Esperar el veredicto de Google, con tiempo límite
-- [x] 4.7 Tests con los modelos y el cliente simulados (ver `specs/url-to-merchant/spec.md`)
-- [x] 4.8 Script de línea de comandos (`scripts/publish_from_url.py`)
-- [x] 4.9 Correr el script con los modelos reales contra la cuenta de prueba de Merchant Center (2026-11-11: producto `11876597`, aprobado)
+- [x] 4.7 Tests con los modelos y el cliente simulados (ver `specs/csv-to-merchant/spec.md`)
+- [x] 4.8 Script de línea de comandos para una URL (`scripts/publish_from_url.py`; se borró en 4.11)
+- [x] 4.9 Correr `publish_from_url.py` con los modelos reales contra la cuenta de prueba de Merchant Center (2026-11-11: producto `11876597`, aprobado)
 - [x] 4.10 Carga en lote desde un CSV (`scripts/publish_from_csv.py`, `positioner/automation/batch.py`), con tests
+- [x] 4.11 La entrada pasa a ser solo un CSV local: se borra `scripts/publish_from_url.py` y el spec describe la entrada por CSV
 
 ## Transversales
 
