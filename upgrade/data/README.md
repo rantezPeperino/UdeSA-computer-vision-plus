@@ -1,10 +1,16 @@
-# Feed sintético
+# Datos de prueba
+
+## Entrada de ejemplo de la etapa 4
+
+`sdd_spec_sample/products_to_publish.csv` tiene un solo producto (`11876597`, el pantalón que ya se aprobó en la cuenta de prueba) con las columnas que lee `scripts/publish_from_csv.py`. Es la entrada que se usa para publicar: se agregan filas o se arma otro CSV con las mismas columnas. Subirlo reemplaza el producto `11876597` en la cuenta de prueba, no crea uno nuevo. Las columnas están en [`MERCHANT_SETUP.md`](../MERCHANT_SETUP.md#3-armar-el-csv) y en el [spec de la etapa 4](../specs/csv-to-merchant/spec.md).
+
+## Feed sintético
 
 Tres CSV con 500 productos cada uno (1.500 en total), armados a partir de las primeras 500 filas de cada CSV de `img-puller` (`pants_tags.csv`, `shoes_tags.csv`, `tops_tags.csv`). A cada fila se le agregan los campos que pediría Google Merchant Center.
 
 **Todo lo agregado es sintético.** Se sortea con semilla fija (42) y no mira la foto: el color, el material o el género declarados no tienen por qué coincidir con la prenda de la imagen. Sirve para probar el contrato del feed, la validación y la publicación en una cuenta de prueba (etapas 2 a 4). No sirve para entrenar ni evaluar modelos, ni para el control de coherencia foto vs. ficha ([canvas](../../canvas.md), sección 5).
 
-## Archivos
+### Archivos
 
 | Archivo | Categoría | Filas |
 |---|---|---|
@@ -12,7 +18,7 @@ Tres CSV con 500 productos cada uno (1.500 en total), armados a partir de las pr
 | `shoes_google_500.csv` | Calzado | 500 |
 | `tops_google_500.csv` | Tops | 500 |
 
-## Columnas
+### Columnas
 
 Orden en los tres archivos: `id`, `image_url`, los dos atributos de la categoría, `season`, `relative_path`, `brand`, `price`, `gtin`, `availability`, `link`, `condition`, `gender`, `material`, `pattern`, `color`, `size`, `age_group`, `google_product_category`, `title`, `description` (21 columnas).
 
@@ -43,7 +49,7 @@ Ejemplo (calzado):
 10097473,https://asset1.ruecdn.com/images/product/131395/1313956101_RLLDTH_1.jpg,Casual,Slides,Tropical-Vacation,images/shoes/10097473.jpg,ElegantLine,130123.16 ARS,7790392405141,in_stock,https://matlock.github.io/?category=shoes&product=10097473,new,male,Denim,Solid,khaki,38,adult,Apparel & Accessories > Shoes,ElegantLine Chinelas hombre de denim caqui talle 38,"Chinelas de denim en color caqui, liso. Pensado para vacaciones en clima cálido."
 ```
 
-## Cómo se usa en cada etapa
+### Cómo se usa en cada etapa
 
 | Etapa | Uso |
 |---|---|
@@ -52,7 +58,7 @@ Ejemplo (calzado):
 | 3 · Publicación | Se suben a una cuenta de prueba de Merchant Center ([`requirements.md`](../requirements.md)) |
 | 4 · Campañas | Sirven para crear una campaña de prueba; las métricas de una cuenta de prueba vuelven en cero |
 
-## Cómo se regenera
+### Cómo se regenera
 
 Desde la raíz del repo:
 

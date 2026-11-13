@@ -20,7 +20,7 @@ Se suman cuatro capacidades nuevas, sin modificar el comportamiento del prototip
 1. **product-enrichment**: corre el prototipo sobre la foto, arma un título con orden fijo y mapea el tipo de prenda a la taxonomía de Google. Los datos que solo conoce la marca pasan tal cual.
 2. **merchant-feed**: une lo enriquecido con los datos de la marca, lo lleva al esquema de Merchant Center y valida cada fila antes de publicar.
 3. **merchant-publishing**: carga las credenciales, apunta a una cuenta de prueba por defecto, sube solo las filas válidas y lee el estado de aprobación.
-4. **url-to-merchant**: encadena las tres anteriores. Dada la URL de una foto y los datos de la marca, descarga la imagen, la atribuye, valida la ficha, la sube a Merchant Center y espera el veredicto de Google. Reemplaza a la etapa de campañas (ver Fuera de alcance).
+4. **csv-to-merchant**: encadena las tres anteriores. Dado un CSV local con la URL de la foto y los datos de la marca de cada prenda, descarga cada imagen, la atribuye, valida la ficha, la sube a Merchant Center y espera el veredicto de Google. Reemplaza a la etapa de campañas (ver Fuera de alcance).
 
 ### Decisión de diseño: qué se infiere y qué declara la marca
 
