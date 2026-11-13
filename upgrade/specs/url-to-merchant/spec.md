@@ -85,6 +85,46 @@ uploaded product, up to a time limit.
 - **THEN** the system SHALL stop polling and return the `pending` status
 - **TEST** `test_wait_for_status_gives_up_after_timeout`
 
+### Requirement: Batch from a CSV
+The system SHALL run the pipeline on every row of a CSV that gives, per garment,
+the photo URL and the brand fields.
+
+#### Scenario: Read the garments of the CSV
+- **WHEN** the CSV has the photo URL (`image_url` or `url`), `brand`, `price`,
+  `link`, `size` and `gender` columns
+- **THEN** the system SHALL read one garment per row, take the `id` column as the
+  product ID, fill `availability`, `condition` and `age_group` with their
+  defaults when empty, and ignore the columns the pipeline generates
+- **TEST** `test_read_rows_takes_brand_fields_from_csv`
+
+#### Scenario: ID derived from the URL
+- **WHEN** a row has no `id`
+- **THEN** the system SHALL derive the product ID from the photo URL
+- **TEST** `test_read_rows_derives_id_from_url`
+
+#### Scenario: Bad CSV fails before processing
+- **IF** a required column is missing or two rows share a product ID
+- **THEN** the system SHALL abort naming the column or the line, before
+  processing any row
+- **TEST** `test_read_rows_rejects_bad_csv`
+
+#### Scenario: Row without size or gender skips the models
+- **IF** a row leaves `size` or `gender` empty (no model infers them)
+- **THEN** the system SHALL mark it `invalid` without running Milestone 1
+- **TEST** `test_batch_skips_row_without_declared_fields`
+
+#### Scenario: A failed row does not stop the batch (Mocked)
+- **IF** a row raises an error (a model or the LLM API)
+- **THEN** the system SHALL record it with stage `error` and keep processing and
+  uploading the next rows
+- **TEST** `test_batch_continues_after_failed_row`
+
+#### Scenario: Wait for the verdict of every product (Mocked)
+- **WHEN** several products were uploaded
+- **THEN** the system SHALL poll only the ones still `pending` until all have a
+  verdict or the time limit runs out
+- **TEST** `test_wait_for_statuses_polls_only_pending`
+
 ## Tests
 
 - `test_pipeline_missing_business_field_fails_before_download`
@@ -97,3 +137,9 @@ uploaded product, up to a time limit.
 - `test_pipeline_dry_run_makes_no_upload`
 - `test_wait_for_status_returns_verdict`
 - `test_wait_for_status_gives_up_after_timeout`
+- `test_read_rows_takes_brand_fields_from_csv`
+- `test_read_rows_derives_id_from_url`
+- `test_read_rows_rejects_bad_csv`
+- `test_batch_skips_row_without_declared_fields`
+- `test_batch_continues_after_failed_row`
+- `test_wait_for_statuses_polls_only_pending`

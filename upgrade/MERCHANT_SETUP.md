@@ -198,6 +198,46 @@ print(MerchantClient(load_credentials(), get_environment()).get_product_statuses
 
 El producto también se ve en Merchant Center, como se explica en
 [Cómo ver el producto en Merchant Center](#cómo-ver-el-producto-en-merchant-center).
+
+## Cómo correr la etapa 4 con un CSV
+
+`scripts/publish_from_csv.py` hace lo mismo que `publish_from_url.py` para cada fila
+de un CSV. Necesita las mismas dependencias y credenciales (pasos 1 y 2 de la
+sección anterior).
+
+El CSV lleva una prenda por fila, con estas columnas:
+
+| Columna | |
+|---|---|
+| `image_url` (o `url`) | URL pública de la foto |
+| `brand`, `price`, `link` | el precio con moneda, por ejemplo `45999.00 ARS` |
+| `size`, `gender` | Google los exige para ropa y ningún modelo los infiere |
+| `id` | opcional; si está vacío, sale de la URL de la foto |
+| `color`, `material`, `pattern`, `gtin`, `availability`, `condition`, `age_group` | opcionales |
+
+Los feeds sintéticos de `upgrade/data/` ya tienen esa forma. El resto de las columnas
+(`title`, `description`, etc.) se ignora: el pipeline las genera desde la foto.
+
+```bash
+# Probar sin subir, con las primeras 3 filas
+python scripts/publish_from_csv.py upgrade/data/pants_google_500.csv --dry-run --limit 3
+
+# Subir
+python scripts/publish_from_csv.py upgrade/data/pants_google_500.csv --limit 3
+```
+
+- Si al CSV le falta una columna obligatoria o tiene dos filas con el mismo `id`,
+  corta antes de cargar los modelos.
+- Una fila que falla (foto que no baja, ficha inválida, error del modelo de lenguaje)
+  no frena las demás.
+- Al terminar de subir, espera el veredicto de Google de todos los productos
+  subidos (`--wait SECONDS`, 300 por defecto; `--wait 0` no espera).
+- Escribe una línea por fila en `<entrada>_results.csv`, junto al CSV de entrada
+  (se cambia con `--out`): etapa en la que terminó, estado en Merchant Center,
+  motivos, y el título, la categoría y la descripción generados. Si se corta con
+  Ctrl-C, guarda las filas ya procesadas.
+- Sale con código 0 si todas las filas se subieron y ninguna fue rechazada, 1 si
+  alguna falló o fue rechazada, y 2 si el CSV es inválido o falta una credencial.
 Ahí aparecen el título, la descripción, la categoría de Google y los datos de la
 marca. El calce, los bolsillos y la temporada que infieren los modelos no tienen campo
 propio en Merchant Center: solo aparecen dentro del título y la descripción.

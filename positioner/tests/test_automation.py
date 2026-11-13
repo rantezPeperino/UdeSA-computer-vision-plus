@@ -16,9 +16,17 @@ if _WS_ROOT not in sys.path:
     sys.path.insert(0, _WS_ROOT)
 
 # ── 2. imports ────────────────────────────────────────────────────────────────
+import tempfile  # noqa: E402
 import unittest  # noqa: E402
 from unittest.mock import MagicMock, patch  # noqa: E402
 
+from positioner.automation.batch import (  # noqa: E402
+    ERROR,
+    BatchRow,
+    read_rows,
+    run_batch,
+    wait_for_statuses,
+)
 from positioner.automation.pipeline import (  # noqa: E402
     DOWNLOAD_FAILED,
     DRY_RUN,
@@ -272,6 +280,153 @@ class AutomationPipelineTests(unittest.TestCase):
         self.assertEqual(status.status, 'pending')
         # Polls at t = 0, 15, 30, 45 and 60; the next one would pass the limit.
         self.assertEqual(get_status.call_count, 5)
+
+
+def _write_csv(text: str) -> str:
+    """Write a CSV to a temporary file and return its path."""
+    file = tempfile.NamedTemporaryFile(
+        'w', suffix='.csv', delete=False, encoding='utf-8', newline='',
+    )
+    with file:
+        file.write(text)
+    return file.name
+
+
+CSV_HEADER = 'id,image_url,brand,price,link,size,gender,title\n'
+
+
+def _row(product_id: str = 'p-1', **overrides) -> BatchRow:
+    return BatchRow(product_id, f'https://example.com/{product_id}.jpg', _business(**overrides))
+
+
+class BatchTests(unittest.TestCase):
+
+    def tearDown(self) -> None:
+        for path in getattr(self, '_paths', []):
+            os.unlink(path)
+
+    def _csv(self, text: str) -> str:
+        path = _write_csv(text)
+        self._paths = [*getattr(self, '_paths', []), path]
+        return path
+
+    # ------------------------------------------------------------------ #
+    #  test_read_rows_takes_brand_fields_from_csv                         #
+    # ------------------------------------------------------------------ #
+    def test_read_rows_takes_brand_fields_from_csv(self) -> None:
+        """Each row gives its ID, URL and brand fields, with defaults filled in."""
+        path = self._csv(
+            CSV_HEADER
+            + '11876597,https://example.com/a.jpg,StyleCo,45999.00 ARS,'
+              'https://matlock.github.io/?product=1,M,female,ignored title\n'
+        )
+
+        rows = read_rows(path)
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0].product_id, '11876597')
+        self.assertEqual(rows[0].image_url, 'https://example.com/a.jpg')
+        self.assertEqual(rows[0].business['price'], '45999.00 ARS')
+        self.assertEqual(rows[0].business['availability'], 'in_stock')
+        self.assertEqual(rows[0].business['condition'], 'new')
+        self.assertEqual(rows[0].business['age_group'], 'adult')
+        self.assertNotIn('title', rows[0].business)
+
+    # ------------------------------------------------------------------ #
+    #  test_read_rows_derives_id_from_url                                 #
+    # ------------------------------------------------------------------ #
+    def test_read_rows_derives_id_from_url(self) -> None:
+        """Without an id column, the ID comes from the URL; 'url' is accepted."""
+        path = self._csv(
+            'url,brand,price,link,size,gender\n'
+            'https://example.com/a.jpg,StyleCo,10.00 ARS,https://matlock.github.io/,M,male\n'
+        )
+
+        rows = read_rows(path)
+
+        self.assertEqual(rows[0].product_id, product_id_from_url('https://example.com/a.jpg'))
+
+    # ------------------------------------------------------------------ #
+    #  test_read_rows_rejects_bad_csv                                     #
+    # ------------------------------------------------------------------ #
+    def test_read_rows_rejects_bad_csv(self) -> None:
+        """Missing columns and repeated IDs fail before any row is processed."""
+        no_size = self._csv(
+            'image_url,brand,price,link,gender\n'
+            'https://example.com/a.jpg,StyleCo,10.00 ARS,https://matlock.github.io/,male\n'
+        )
+        repeated = self._csv(
+            CSV_HEADER
+            + 'p-1,https://example.com/a.jpg,S,10.00 ARS,https://m.io/,M,male,\n'
+            + 'p-1,https://example.com/b.jpg,S,10.00 ARS,https://m.io/,M,male,\n'
+        )
+
+        with self.assertRaisesRegex(ValueError, 'size'):
+            read_rows(no_size)
+        with self.assertRaisesRegex(ValueError, 'line 3'):
+            read_rows(repeated)
+
+    # ------------------------------------------------------------------ #
+    #  test_batch_skips_row_without_declared_fields                       #
+    # ------------------------------------------------------------------ #
+    def test_batch_skips_row_without_declared_fields(self) -> None:
+        """A row without size is 'invalid' and never reaches the models."""
+        enrich = MagicMock(return_value=_enriched())
+        row = _row()
+        del row.business['size']
+
+        [result] = run_batch([row], dry_run=True, enrich=enrich)
+
+        self.assertEqual(result.stage, INVALID)
+        self.assertEqual(result.reasons, ['missing_size'])
+        enrich.assert_not_called()
+
+    # ------------------------------------------------------------------ #
+    #  test_batch_continues_after_failed_row                              #
+    # ------------------------------------------------------------------ #
+    def test_batch_continues_after_failed_row(self) -> None:
+        """An error in one row is recorded and the next rows are still uploaded."""
+        enrich = MagicMock(side_effect=[RuntimeError('LLM timeout'), _enriched()])
+        client = _client()
+        seen = []
+
+        with patch.object(
+            client, '_upload_product',
+            return_value=UploadResult(product_id='p-2', success=True),
+        ) as upload:
+            results = run_batch(
+                [_row('p-1'), _row('p-2')], client=client, enrich=enrich,
+                on_result=lambda index, result: seen.append(index),
+            )
+
+        self.assertEqual([r.stage for r in results], [ERROR, UPLOADED])
+        self.assertEqual(results[0].reasons, ['LLM timeout'])
+        self.assertEqual(seen, [0, 1])
+        upload.assert_called_once()
+        self.assertEqual(upload.call_args.args[0].id, 'p-2')
+
+    # ------------------------------------------------------------------ #
+    #  test_wait_for_statuses_polls_only_pending                          #
+    # ------------------------------------------------------------------ #
+    def test_wait_for_statuses_polls_only_pending(self) -> None:
+        """Products with a verdict are not asked for again."""
+        client = _client()
+        answers = {
+            'p-1': iter(['approved']),
+            'p-2': iter(['pending', 'disapproved']),
+        }
+
+        def get_status(product_id: str) -> ProductStatus:
+            return ProductStatus(product_id=product_id, status=next(answers[product_id]))
+
+        with patch.object(client, '_get_status', side_effect=get_status) as calls:
+            statuses = wait_for_statuses(
+                client, ['p-1', 'p-2'], sleep=MagicMock(), clock=lambda: 0,
+            )
+
+        self.assertEqual(statuses['p-1'].status, 'approved')
+        self.assertEqual(statuses['p-2'].status, 'disapproved')
+        self.assertEqual(calls.call_count, 3)
 
 
 if __name__ == '__main__':

@@ -42,9 +42,8 @@ from positioner.automation.pipeline import (  # noqa: E402
     run_pipeline,
     wait_for_status,
 )
-from positioner.publishing.credential_loader import CredentialError, load_credentials  # noqa: E402
-from positioner.publishing.environment import get_environment  # noqa: E402
-from positioner.publishing.merchant_client import MerchantClient  # noqa: E402
+from positioner.automation.connect import SetupError, connect  # noqa: E402
+from positioner.publishing.credential_loader import CredentialError  # noqa: E402
 
 STAGES = {
     "download_failed": "Could not download the image",
@@ -114,29 +113,11 @@ def main() -> int:
     if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
         sys.stdout.reconfigure(encoding="utf-8")
 
-    client = None
-    if not args.dry_run:
-        from llm import description_client  # from deep-tagger-api
-        try:
-            provider = description_client.provider()
-        except ValueError as error:
-            print(f"LLM_PROVIDER: {error}", file=sys.stderr)
-            return 2
-        if provider is None:
-            print("Missing the language model key (OPENAI_API_KEY or ANTHROPIC_API_KEY, "
-                  "the one matching LLM_PROVIDER if it is set): without it the description "
-                  "is placeholder text and would be uploaded as such to Merchant Center. "
-                  "Set it or run with --dry-run.", file=sys.stderr)
-            return 2
-        print(f"Description generated with: {provider}")
-        try:
-            credentials = load_credentials()
-        except CredentialError as error:
-            print(f"Merchant Center credentials: {error} (see upgrade/MERCHANT_SETUP.md)", file=sys.stderr)
-            return 2
-        environment = get_environment()
-        client = MerchantClient(credentials, environment)
-        print(f"Merchant Center: account {credentials.merchant_id}, environment {environment.value}")
+    try:
+        client = connect(args.dry_run)
+    except SetupError as error:
+        print(error, file=sys.stderr)
+        return 2
 
     product_id = args.id or product_id_from_url(args.url)
     print(f"Product {product_id} from {args.url}")
