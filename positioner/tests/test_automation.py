@@ -16,6 +16,7 @@ if _WS_ROOT not in sys.path:
     sys.path.insert(0, _WS_ROOT)
 
 # ── 2. imports ────────────────────────────────────────────────────────────────
+import csv  # noqa: E402
 import tempfile  # noqa: E402
 import unittest  # noqa: E402
 from unittest.mock import MagicMock, patch  # noqa: E402
@@ -26,6 +27,7 @@ from positioner.automation.batch import (  # noqa: E402
     read_rows,
     run_batch,
     wait_for_statuses,
+    write_results,
 )
 from positioner.automation.pipeline import (  # noqa: E402
     DOWNLOAD_FAILED,
@@ -247,6 +249,9 @@ def _write_csv(text: str) -> str:
 
 CSV_HEADER = 'id,image_url,brand,price,link,size,gender,title\n'
 
+# The example input of Milestone 4: one product, documented in the spec.
+EXAMPLE_CSV = os.path.join(_WS_ROOT, 'upgrade', 'data', 'sdd_spec_sample', 'products_to_publish.csv')
+
 
 def _row(product_id: str = 'p-1', **overrides) -> BatchRow:
     return BatchRow(product_id, f'https://example.com/{product_id}.jpg', _business(**overrides))
@@ -318,6 +323,21 @@ class BatchTests(unittest.TestCase):
             read_rows(no_size)
         with self.assertRaisesRegex(ValueError, 'line 3'):
             read_rows(repeated)
+
+    # ------------------------------------------------------------------ #
+    #  test_example_csv_is_valid_input                                    #
+    # ------------------------------------------------------------------ #
+    def test_example_csv_is_valid_input(self) -> None:
+        """The example input has one product, and that product passes validation."""
+        enrich = MagicMock(return_value=_enriched(title='ElegantLine female Pants'))
+
+        rows = read_rows(EXAMPLE_CSV)
+        [result] = run_batch(rows, dry_run=True, enrich=enrich)
+
+        self.assertEqual([row.product_id for row in rows], ['11876597'])
+        self.assertTrue(rows[0].image_url.startswith('https://'))
+        self.assertEqual(result.stage, DRY_RUN)
+        self.assertEqual(result.product.image_link, rows[0].image_url)
 
     # ------------------------------------------------------------------ #
     #  test_batch_skips_row_without_declared_fields                       #
@@ -405,6 +425,34 @@ class BatchTests(unittest.TestCase):
         # Polls at t = 0, 15, 30, 45 and 60; the next one would pass the limit.
         self.assertEqual(get_status.call_count, 5)
 
+    # ------------------------------------------------------------------ #
+    #  test_results_file_has_one_line_per_row                             #
+    # ------------------------------------------------------------------ #
+    def test_results_file_has_one_line_per_row(self) -> None:
+        """Each row gets its stage, Google's verdict and what was generated."""
+        enrich = MagicMock(return_value=_enriched())
+        client = _client()
+        invalid = _row('p-2')
+        del invalid.business['gender']
+
+        with patch.object(
+            client, '_upload_product',
+            return_value=UploadResult(product_id='p-1', success=True),
+        ):
+            results = run_batch([_row('p-1'), invalid], client=client, enrich=enrich)
+        statuses = {'p-1': ProductStatus(product_id='p-1', status='approved')}
+        path = self._csv('')
+        write_results(path, results, statuses)
+
+        with open(path, newline='', encoding='utf-8') as file:
+            lines = list(csv.DictReader(file))
+        self.assertEqual([line['id'] for line in lines], ['p-1', 'p-2'])
+        self.assertEqual(lines[0]['stage'], UPLOADED)
+        self.assertEqual(lines[0]['merchant_status'], 'approved')
+        self.assertEqual(lines[0]['title'], 'StyleCo Women Pants Slim-Fit-Pant Black M')
+        self.assertEqual(lines[1]['stage'], INVALID)
+        self.assertEqual(lines[1]['merchant_status'], '')
+        self.assertEqual(lines[1]['reasons'], 'missing_gender')
 
 if __name__ == '__main__':
     unittest.main()

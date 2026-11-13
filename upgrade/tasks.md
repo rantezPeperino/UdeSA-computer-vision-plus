@@ -46,6 +46,7 @@ Reemplaza a la etapa de campañas, que quedó fuera de alcance porque crear una 
 - [x] 4.9 Correr `publish_from_url.py` con los modelos reales contra la cuenta de prueba de Merchant Center (2026-11-11: producto `11876597`, aprobado)
 - [x] 4.10 Carga en lote desde un CSV (`scripts/publish_from_csv.py`, `positioner/automation/batch.py`), con tests
 - [x] 4.11 La entrada pasa a ser solo un CSV local: se borra `scripts/publish_from_url.py` y el spec describe la entrada por CSV
+- [x] 4.12 CSV de ejemplo con un producto (`upgrade/data/sdd_spec_sample/products_to_publish.csv`) y archivo de resultados, documentados en el spec y con tests
 
 ## Transversales
 

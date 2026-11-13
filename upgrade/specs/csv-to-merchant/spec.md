@@ -12,6 +12,31 @@ milestone: creating a campaign and measuring it requires paying for ads.
 ### Requirement: CSV input
 The system SHALL take as input the path of a local CSV with one garment per row.
 
+The path is the first argument of `scripts/publish_from_csv.py`. The CSV is meant
+to hold only the garments to publish, one or a few, not a whole catalog. The
+example input is `upgrade/data/sdd_spec_sample/products_to_publish.csv`, with one product:
+
+```
+id,image_url,brand,price,link,size,gender,color,material,pattern,availability,condition,age_group
+11876597,https://asset1.ruecdn.com/images/product/151188/1511885746_RLLDTH_1.jpg,ElegantLine,30029.69 ARS,https://matlock.github.io/?category=pants&product=11876597,XXL,female,navy blue,Polyester,Striped,in_stock,new,adult
+```
+
+To publish it (without `--dry-run`, so it is uploaded to Merchant Center):
+
+```
+python scripts/publish_from_csv.py upgrade/data/sdd_spec_sample/products_to_publish.csv
+```
+
+To publish other garments, write them in a CSV with the same columns and pass its
+path. The synthetic feeds `upgrade/data/*_google_500.csv` also have this shape, with
+500 rows each; they are for testing at scale, not the expected input.
+
+#### Scenario: Example input with one product
+- **WHEN** the input is `upgrade/data/sdd_spec_sample/products_to_publish.csv`
+- **THEN** the system SHALL read exactly one garment, `11876597`, with an HTTP
+  photo URL, and that garment SHALL pass validation
+- **TEST** `test_example_csv_is_valid_input`
+
 #### Scenario: Read the garments of the CSV
 - **WHEN** the CSV has the photo URL (`image_url` or `url`), `brand`, `price`,
   `link`, `size` and `gender` columns
@@ -125,8 +150,22 @@ uploaded product, up to a time limit.
 - **THEN** the system SHALL stop polling and return the `pending` status
 - **TEST** `test_wait_for_statuses_gives_up_after_timeout`
 
+### Requirement: Results file
+The system SHALL write the outcome of every row to a results CSV, by default
+`<input>_results.csv` next to the input: for the example,
+`upgrade/data/sdd_spec_sample/products_to_publish_results.csv`.
+
+#### Scenario: One result line per row (Mocked)
+- **WHEN** the batch ends and Google's verdicts were read
+- **THEN** the system SHALL write one line per row with its ID, the stage where
+  it ended, its status in Merchant Center (`approved`, `disapproved` or
+  `pending`), the reasons when it failed or was disapproved, and the title,
+  category and description generated from the photo
+- **TEST** `test_results_file_has_one_line_per_row`
+
 ## Tests
 
+- `test_example_csv_is_valid_input`
 - `test_read_rows_takes_brand_fields_from_csv`
 - `test_read_rows_derives_id_from_url`
 - `test_product_id_is_stable_for_same_url`
@@ -142,3 +181,4 @@ uploaded product, up to a time limit.
 - `test_pipeline_dry_run_makes_no_upload`
 - `test_wait_for_statuses_polls_only_pending`
 - `test_wait_for_statuses_gives_up_after_timeout`
+- `test_results_file_has_one_line_per_row`

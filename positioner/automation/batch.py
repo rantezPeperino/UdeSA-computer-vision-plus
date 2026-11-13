@@ -9,7 +9,9 @@ Runs the pipeline of one garment (pipeline.run_pipeline) once per row:
        │                                  run_batch
        ▼
     wait for Google's verdict on every uploaded product
-                                          wait_for_statuses
+       │                                  wait_for_statuses
+       ▼
+    one result line per row               write_results
 
 A row that fails does not stop the others: its result says at which stage it
 ended and why. Only a credentials error stops the batch, since it would fail
@@ -189,3 +191,40 @@ def wait_for_statuses(
             break
         sleep(interval_s)
     return statuses
+
+
+# Columns of the results file: where each row ended, Google's verdict, and
+# what the pipeline generated from the photo.
+RESULT_COLUMNS = [
+    'id', 'image_url', 'stage', 'merchant_status', 'reasons',
+    'title', 'google_product_category', 'predicted_color', 'description',
+]
+
+
+def result_line(result: PipelineResult, status: Optional[ProductStatus] = None) -> dict:
+    """One line of the results file for one row."""
+    enriched = result.enriched
+    return {
+        'id': result.product_id,
+        'image_url': result.image_url,
+        'stage': result.stage,
+        'merchant_status': status.status if status else '',
+        'reasons': '; '.join([*result.reasons, *(status.issues if status else [])]),
+        'title': enriched.title if enriched else '',
+        'google_product_category': enriched.google_product_category if enriched else '',
+        'predicted_color': enriched.predicted_color if enriched else '',
+        'description': enriched.description if enriched else '',
+    }
+
+
+def write_results(
+    path: Union[str, Path],
+    results: Sequence[PipelineResult],
+    statuses: Dict[str, ProductStatus],
+) -> None:
+    """Write one line per row, with Google's verdict when there is one."""
+    with open(path, 'w', newline='', encoding='utf-8') as file:
+        writer = csv.DictWriter(file, fieldnames=RESULT_COLUMNS)
+        writer.writeheader()
+        for result in results:
+            writer.writerow(result_line(result, statuses.get(result.product_id)))

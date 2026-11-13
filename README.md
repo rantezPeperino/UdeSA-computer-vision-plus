@@ -54,7 +54,7 @@ Foto + datos de la marca
 └──────────────────────────────────┘
 ```
 
-**Estado:** la lógica de las cuatro etapas está escrita y sus 36 escenarios pasan con las APIs de Google simuladas. Las llamadas a Merchant API (etapa 3) ya son reales y se probaron contra una cuenta de prueba ([`upgrade/MERCHANT_SETUP.md`](upgrade/MERCHANT_SETUP.md)). La etapa 4 encadena las tres para cada prenda de un CSV. Con una sola foto ya se corrió con los modelos reales contra la cuenta de prueba: el producto `11876597` quedó aprobado. Las campañas de Google Ads quedaron fuera de alcance porque cuestan dinero ([`upgrade/README.md`](upgrade/README.md), sección Estado).
+**Estado:** la lógica de las cuatro etapas está escrita y sus 38 escenarios pasan con las APIs de Google simuladas. Las llamadas a Merchant API (etapa 3) ya son reales y se probaron contra una cuenta de prueba ([`upgrade/MERCHANT_SETUP.md`](upgrade/MERCHANT_SETUP.md)). La etapa 4 encadena las tres para cada prenda de un CSV. Con una sola foto ya se corrió con los modelos reales contra la cuenta de prueba: el producto `11876597` quedó aprobado. Las campañas de Google Ads quedaron fuera de alcance porque cuestan dinero ([`upgrade/README.md`](upgrade/README.md), sección Estado).
 
 ---
 
@@ -74,7 +74,7 @@ positioner/             # Pipeline de posicionamiento en Google
   feed/                 #   2: esquema de Merchant Center y validación
   publishing/           #   3: publicación en Merchant Center
   automation/           #   4: de la URL de la foto a Merchant Center
-  tests/                #   43 tests (sin GPU, sin red, sin credenciales)
+  tests/                #   45 tests (sin GPU, sin red, sin credenciales)
 upgrade/                # Propuesta, requisitos, tareas, specs y feed sintético del pipeline
 ```
 
@@ -185,17 +185,20 @@ Encadena las tres etapas para cada prenda de un CSV local. Cada fila trae la URL
 
 Necesita las dependencias de `deep-tagger-api`, las variables de entorno de la etapa 3 y una clave para generar la descripción: `OPENAI_API_KEY` o `ANTHROPIC_API_KEY` (con `LLM_PROVIDER=openai` o `anthropic` se elige uno si están las dos):
 
-```bash
-python scripts/publish_from_csv.py productos.csv
+El CSV lleva solo las prendas que se quieren publicar. Hay uno de ejemplo con un producto, [`upgrade/data/sdd_spec_sample/products_to_publish.csv`](upgrade/data/sdd_spec_sample/products_to_publish.csv):
 
-# Arma y valida las fichas sin subirlas (no hacen falta credenciales), solo las primeras 3 filas:
-python scripts/publish_from_csv.py productos.csv --dry-run --limit 3
+```bash
+# Sube el producto a Merchant Center; el resultado queda en upgrade/data/sdd_spec_sample/products_to_publish_results.csv
+python scripts/publish_from_csv.py upgrade/data/sdd_spec_sample/products_to_publish.csv
+
+# Arma y valida la ficha sin subirla (no hacen falta credenciales):
+python scripts/publish_from_csv.py upgrade/data/sdd_spec_sample/products_to_publish.csv --dry-run
 ```
 
 ```python
 from positioner.automation.batch import read_rows, run_batch, wait_for_statuses
 
-results = run_batch(read_rows("productos.csv"), client=client)  # r.stage: uploaded, invalid, ...
+results = run_batch(read_rows("upgrade/data/sdd_spec_sample/products_to_publish.csv"), client=client)  # r.stage: uploaded, invalid, ...
 statuses = wait_for_statuses(client, [r.product_id for r in results if r.stage == "uploaded"])
 ```
 
@@ -211,12 +214,12 @@ Sin GPU, sin red y sin credenciales: todas las llamadas externas están simulada
 
 ```bash
 # Desde la raíz del repo
-python -m unittest discover -s positioner/tests -t . -v   # los 43 tests
+python -m unittest discover -s positioner/tests -t . -v   # los 45 tests
 
 python -m unittest positioner.tests.test_enrichment -v     # 1 · 6 tests
 python -m unittest positioner.tests.test_feed -v           # 2 · 9 tests
 python -m unittest positioner.tests.test_publishing -v     # 3 · 13 tests
-python -m unittest positioner.tests.test_automation -v     # 4 · 15 tests
+python -m unittest positioner.tests.test_automation -v     # 4 · 17 tests
 ```
 
 Para ver los resultados contra los specs, con cada escenario tildado:

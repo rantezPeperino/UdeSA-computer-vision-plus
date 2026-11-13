@@ -139,7 +139,17 @@ relleno. Con `--dry-run` corre igual.
 
 ### 3. Armar el CSV
 
-Una prenda por fila, con estas columnas:
+El CSV lleva solo las prendas que se quieren publicar: una o unas pocas, no un
+catálogo entero. Hay uno de ejemplo con un solo producto,
+[`data/sdd_spec_sample/products_to_publish.csv`](data/sdd_spec_sample/products_to_publish.csv):
+
+```
+id,image_url,brand,price,link,size,gender,color,material,pattern,availability,condition,age_group
+11876597,https://asset1.ruecdn.com/images/product/151188/1511885746_RLLDTH_1.jpg,ElegantLine,30029.69 ARS,https://matlock.github.io/?category=pants&product=11876597,XXL,female,navy blue,Polyester,Striped,in_stock,new,adult
+```
+
+Para publicar otras prendas, se agregan filas a ese archivo o se arma otro con las
+mismas columnas:
 
 | Columna | |
 |---|---|
@@ -149,7 +159,8 @@ Una prenda por fila, con estas columnas:
 | `id` | opcional; si está vacío, sale de la URL de la foto |
 | `color`, `material`, `pattern`, `gtin`, `availability`, `condition`, `age_group` | opcionales; `availability`, `condition` y `age_group` valen `in_stock`, `new` y `adult` si están vacías |
 
-Los feeds sintéticos de `upgrade/data/` ya tienen esa forma. El resto de las columnas
+Los feeds sintéticos de 500 filas (`upgrade/data/*_google_500.csv`) también tienen esa
+forma, pero son para probar a escala. El resto de las columnas
 (`title`, `description`, etc.) se ignora: el pipeline las genera desde la foto. Si al
 CSV le falta una columna obligatoria o tiene dos filas con el mismo `id`, el script
 corta antes de cargar los modelos.
@@ -161,16 +172,20 @@ foto ya subida.
 ### 4. Probar sin subir
 
 ```bash
-python scripts/publish_from_csv.py upgrade/data/pants_google_500.csv --dry-run --limit 3
+python scripts/publish_from_csv.py upgrade/data/sdd_spec_sample/products_to_publish.csv --dry-run
 ```
 
-`--limit N` procesa solo las primeras N filas. Por cada fila dice en qué etapa
+Con un CSV grande, `--limit N` procesa solo las primeras N filas. Por cada fila dice en qué etapa
 terminó, y deja el título, la categoría y la descripción generados en el archivo de
 resultados (paso 5). No necesita las credenciales de Merchant Center.
 
 ### 5. Subir
 
-El mismo comando, sin `--dry-run`. Una fila que falla (foto que no baja, ficha
+```bash
+python scripts/publish_from_csv.py upgrade/data/sdd_spec_sample/products_to_publish.csv
+```
+
+Una fila que falla (foto que no baja, ficha
 inválida, error del modelo de lenguaje) no frena las demás.
 
 Después de subir, el script consulta el estado de los productos subidos cada 15
@@ -178,7 +193,8 @@ segundos durante 5 minutos como máximo (se cambia con `--wait SECONDS`; `--wait
 espera).
 
 Escribe una línea por fila en `<entrada>_results.csv`, junto al CSV de entrada (se
-cambia con `--out`): etapa en la que terminó, estado en Merchant Center, motivos, y el
+cambia con `--out`). Con el CSV de ejemplo queda en
+`upgrade/data/sdd_spec_sample/products_to_publish_results.csv`, con estas columnas: etapa en la que terminó, estado en Merchant Center, motivos, y el
 título, la categoría y la descripción generados. Si se corta con Ctrl-C, guarda las
 filas ya procesadas.
 

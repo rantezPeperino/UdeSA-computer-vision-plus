@@ -19,7 +19,8 @@ CSV columns:
     id                         optional; derived from the URL when empty, so the
                                same photo always updates the same product
     color, material, pattern, gtin, availability, condition, age_group  optional
-The synthetic feeds in upgrade/data/ already have this shape.
+Example with one product: upgrade/data/sdd_spec_sample/products_to_publish.csv. The synthetic
+feeds in upgrade/data/*_google_500.csv also have this shape (500 rows each).
 
 Needs the deep-tagger-api dependencies (torch, transformers, etc.) and, to upload,
 the environment variables in upgrade/MERCHANT_SETUP.md:
@@ -29,15 +30,15 @@ plus a key to generate the description: OPENAI_API_KEY or ANTHROPIC_API_KEY
 deep-tagger-api/llm/description_client.py).
 
 Usage (from the repo root):
-    python scripts/publish_from_csv.py products.csv --dry-run --limit 3   # uploads nothing
-    python scripts/publish_from_csv.py products.csv
-    python scripts/publish_from_csv.py products.csv --out results.csv --wait 0
+    python scripts/publish_from_csv.py upgrade/data/sdd_spec_sample/products_to_publish.csv --dry-run   # uploads nothing
+    python scripts/publish_from_csv.py upgrade/data/sdd_spec_sample/products_to_publish.csv
+    # -> results in upgrade/data/sdd_spec_sample/products_to_publish_results.csv
+    python scripts/publish_from_csv.py my_products.csv --out results.csv --wait 0
 """
 
 from __future__ import annotations
 
 import argparse
-import csv
 import sys
 from collections import Counter
 from pathlib import Path
@@ -47,17 +48,16 @@ sys.path.insert(0, str(ROOT))
 # enrich_product imports the deep-tagger-api modules as top-level packages.
 sys.path.insert(0, str(ROOT / "deep-tagger-api"))
 
-from positioner.automation.batch import read_rows, run_batch, wait_for_statuses  # noqa: E402
+from positioner.automation.batch import (  # noqa: E402
+    read_rows,
+    run_batch,
+    wait_for_statuses,
+    write_results,
+)
 from positioner.automation.pipeline import DRY_RUN, UPLOADED  # noqa: E402
 from positioner.publishing.credential_loader import CredentialError, load_credentials  # noqa: E402
 from positioner.publishing.environment import get_environment  # noqa: E402
 from positioner.publishing.merchant_client import MerchantClient  # noqa: E402
-
-RESULT_COLUMNS = [
-    "id", "image_url", "stage", "merchant_status", "reasons",
-    "title", "google_product_category", "predicted_color", "description",
-]
-
 
 class SetupError(Exception):
     """Something the upload needs is not configured; the message says what."""
@@ -101,29 +101,6 @@ def connect() -> MerchantClient:
     environment = get_environment()
     print(f"Merchant Center: account {credentials.merchant_id}, environment {environment.value}")
     return MerchantClient(credentials, environment)
-
-
-def result_line(result, status=None) -> dict:
-    enriched = result.enriched
-    return {
-        "id": result.product_id,
-        "image_url": result.image_url,
-        "stage": result.stage,
-        "merchant_status": status.status if status else "",
-        "reasons": "; ".join([*result.reasons, *(status.issues if status else [])]),
-        "title": enriched.title if enriched else "",
-        "google_product_category": enriched.google_product_category if enriched else "",
-        "predicted_color": enriched.predicted_color if enriched else "",
-        "description": enriched.description if enriched else "",
-    }
-
-
-def write_results(path: Path, results, statuses) -> None:
-    with open(path, "w", newline="", encoding="utf-8") as file:
-        writer = csv.DictWriter(file, fieldnames=RESULT_COLUMNS)
-        writer.writeheader()
-        for result in results:
-            writer.writerow(result_line(result, statuses.get(result.product_id)))
 
 
 def main() -> int:
