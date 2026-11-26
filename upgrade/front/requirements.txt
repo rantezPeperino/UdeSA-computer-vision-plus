@@ -1,0 +1,6 @@
+# The monitor runs scripts/publish_from_csv.py, so it also needs the repo's
+# requirements.txt and deep-tagger-api/requirements.txt. On top of those:
+fastapi>=0.110
+uvicorn>=0.29
+python-multipart>=0.0.9
+httpx>=0.27  # only for the tests (FastAPI TestClient)
