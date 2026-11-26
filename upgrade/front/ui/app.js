@@ -328,46 +328,6 @@ function lastHtml(run, file) {
     <dl style="margin:0">${fields}</dl></section>`;
 }
 
-function gridHtml(run, file) {
-  const total = file.total;
-  if (total == null) return '';
-  const cells = [];
-  for (let i = 0; i < total; i++) {
-    const row = file.rows[i];
-    let cls = '', title = 'sin procesar';
-    if (row?.result) { cls = stageClass(row.result.stage); title = row.result.stage + (row.result.reasons?.length ? ` (${row.result.reasons.join('; ')})` : ''); }
-    else if (row) { cls = 'run'; title = 'en curso'; }
-    const label = `${row?.productId || `fila ${i + 1}`}: ${title}`;
-    cells.push(row ? `<a class="cell ${cls}" href="${rowHref(run, run.selected, i)}" title="${esc(label)}" aria-label="${esc(label)}"></a>`
-      : `<span class="cell" title="${esc(label)}"></span>`);
-  }
-  const counts = countBy(done(file), (r) => r.result.stage);
-  const merchant = file.verdict?.finished || {};
-  return `<section class="card card-pad grow-2" aria-labelledby="grid-h">
-    <div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin-bottom:12px"><h2 id="grid-h">Filas de ${esc(file.name)}</h2>
-      <span class="muted">${done(file).length} de ${total} · clic para ver el detalle</span></div>
-    <div class="cells">${cells.join('')}</div>
-    <div class="legend"><span><i style="background:var(--ok-line)"></i>uploaded · dry_run</span><span><i style="background:var(--warn)"></i>invalid · download_failed</span>
-      <span><i style="background:var(--err-soft)"></i>upload_failed · error</span><span><i style="background:var(--run)"></i>en curso</span>
-      <span><i style="background:#fff;border:1px solid var(--idle-line)"></i>sin procesar</span></div>
-    <div class="counts">${Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<span class="${stageChip(k)}">${esc(k)}: ${v}</span>`).join('')}
-      ${Object.entries(merchant).map(([k, v]) => `<span class="${k === 'approved' ? 'chip-ok' : k === 'disapproved' ? 'chip-err' : 'chip-warn'}">Merchant Center ${esc(k)}: ${v}</span>`).join('')}</div>
-  </section>`;
-}
-
-function logClass(line) {
-  if (line.stream === 'stderr') return 'err';
-  const m = /^\[\d+\/\d+\] [^:]*: (\w+)/.exec(line.text);
-  if (m) return stageClass(m[1]);
-  return '';
-}
-
-function logHtml(file) {
-  return `<section class="card grow-3" aria-labelledby="log-h" style="overflow:hidden">
-    <div class="card-head"><h2 id="log-h">Salida del script</h2><span class="mono muted">${esc(file.name)}</span></div>
-    <ol class="log" id="log">${file.log.map((l) => `<li class="${logClass(l)}">${esc(l.text)}</li>`).join('') || '<li class="muted">Todavía no hay salida.</li>'}</ol></section>`;
-}
-
 function summaryHtml(run) {
   return `<section class="card" aria-labelledby="sum-h"><div class="card-head"><h2 id="sum-h">Resumen por archivo</h2></div>
     <div class="table-scroll"><table style="min-width:1000px"><thead><tr><th scope="col">Archivo</th><th scope="col">Salida</th>
@@ -416,8 +376,7 @@ function runHtml(run) {
         <h2 id="path-h">Camino de <span class="mono">${esc(file.name)}</span></h2>
         <span class="muted">${file.current != null ? `Fila ${file.current + 1} de ${file.total}` : ''}</span></div>
       ${pathHtml(run, file)}</section>
-    <div class="row">${currentHtml(run, file)}${lastHtml(run, file)}</div>
-    <div class="row">${gridHtml(run, file)}${logHtml(file)}</div>`;
+    <div class="row">${currentHtml(run, file)}${lastHtml(run, file)}</div>`;
 }
 
 // ── row detail ───────────────────────────────────────────────────────────────
@@ -475,6 +434,19 @@ function stopActive() {
   active = null;
 }
 
+// The row detail is redrawn only when its content changes, keeping its scroll:
+// the 1-second tick that updates the timers must not send it back to the top.
+let modalHtml = '';
+function showModal(html) {
+  if (html === modalHtml) return;
+  const back = modalRoot.querySelector('.modal-back');
+  const top = back ? back.scrollTop : 0;
+  modalHtml = html;
+  modalRoot.innerHTML = html;
+  const next = modalRoot.querySelector('.modal-back');
+  if (next && back) next.scrollTop = top;
+}
+
 let renderQueued = false;
 function render() {
   if (renderQueued) return;
@@ -482,13 +454,9 @@ function render() {
   requestAnimationFrame(() => {
     renderQueued = false;
     if (!active) return;
-    const log = document.getElementById('log');
-    const stick = !log || log.scrollTop + log.clientHeight >= log.scrollHeight - 8;
     app.innerHTML = runHtml(active.run);
-    const newLog = document.getElementById('log');
-    if (newLog && stick) newLog.scrollTop = newLog.scrollHeight;
     const route = parseRoute();
-    modalRoot.innerHTML = route.row != null ? detailHtml(active.run, route.file, route.row) : '';
+    showModal(route.row != null ? detailHtml(active.run, route.file, route.row) : '');
   });
 }
 
@@ -541,7 +509,7 @@ const kb = (n) => (n < 1024 ? `${n} B` : `${Math.round(n / 1024)} KB`);
 
 async function newRunView() {
   stopActive();
-  modalRoot.innerHTML = '';
+  showModal('');
   let current = null;
   try { current = await (await fetch('/api/runs/current')).json(); } catch (_) { /* server down */ }
   const csv = csvOfPick();

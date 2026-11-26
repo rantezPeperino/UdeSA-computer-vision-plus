@@ -130,26 +130,7 @@ La fila que se está procesando:
 - **title**, **google_product_category** y **description**: lo que generó el script.
 - **color (CSV)** frente a **predicted_color**: el color que trae el CSV y el que
   detectó el modelo en la foto. Si el CSV trae color, el título usa ese.
-- **Ver detalle:** abre la ficha completa de la fila.
-
-### Filas del archivo
-Una celda por fila. Al hacer clic se abre el detalle.
-
-| Color | Significado |
-|---|---|
-| Verde | `uploaded` (subida) o `dry_run` (pasó todo, con "No subir"). |
-| Amarillo | `invalid` (datos que no pasan la validación) o `download_failed` (no se pudo bajar o leer la foto). |
-| Rojo | `upload_failed` (Merchant Center la rechazó al subir) o `error` (falla inesperada). |
-| Azul | En curso. |
-| Blanco | Sin procesar. |
-
-Debajo están los conteos por `stage` y, si hubo espera, los de Merchant Center.
-
-### Salida del script
-Las líneas que imprime el script, exactamente como en la terminal:
-- en verde, las filas que salieron bien;
-- en amarillo, las que no pasaron;
-- en rojo, los errores.
+- **Ver detalle:** abre la ficha completa de esa fila.
 
 ### Resumen por archivo (al terminar)
 
